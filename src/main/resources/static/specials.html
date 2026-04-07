@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supermarket Specials</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f6f9; color: #222; }
+
+        header { background: #1a3a1a; color: white; padding: 18px 32px; }
+        header h1 { font-size: 1.5rem; font-weight: 700; }
+        header p  { font-size: 0.85rem; opacity: 0.7; margin-top: 4px; }
+
+        .breadcrumb { background: #122612; padding: 8px 32px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; }
+        .breadcrumb a { color: rgba(255,255,255,0.55); text-decoration: none; }
+        .breadcrumb a:hover { color: white; }
+        .breadcrumb .sep { color: rgba(255,255,255,0.25); }
+        .breadcrumb .current { color: rgba(255,255,255,0.85); }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+
+        /* Store tabs */
+        .store-tabs { display: flex; gap: 0; margin-bottom: 24px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
+        .store-tab {
+            flex: 1; padding: 16px 10px; cursor: pointer; text-align: center;
+            font-weight: 700; font-size: 0.9rem; border: none; transition: all 0.18s;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .store-tab .tab-logo { font-size: 1.5rem; }
+        .store-tab.woolworths { background: #1a5c1a; color: rgba(255,255,255,0.7); }
+        .store-tab.woolworths.active { background: #27ae27; color: white; }
+        .store-tab.woolworths:hover:not(.active) { background: #206020; color: white; }
+        .store-tab.coles { background: #8b0000; color: rgba(255,255,255,0.7); }
+        .store-tab.coles.active { background: #c0392b; color: white; }
+        .store-tab.coles:hover:not(.active) { background: #a00000; color: white; }
+        .store-tab.aldi { background: #004a99; color: rgba(255,255,255,0.7); }
+        .store-tab.aldi.active { background: #0066cc; color: white; }
+        .store-tab.aldi:hover:not(.active) { background: #005ab5; color: white; }
+
+        /* Controls bar */
+        .controls-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+        .search-box { padding: 8px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.9rem; width: 220px; background: white; }
+        .search-box:focus { outline: none; border-color: #27ae27; }
+        .sort-select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.85rem; background: white; }
+        .sort-select:focus { outline: none; border-color: #27ae27; }
+        .filter-btn { padding: 7px 14px; border: 1px solid #ddd; border-radius: 20px; background: white; font-size: 0.78rem; cursor: pointer; color: #555; font-weight: 600; }
+        .filter-btn.active { background: #27ae27; color: white; border-color: #27ae27; }
+        .controls-right { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 0.78rem; color: #888; }
+        .view-toggle { display: flex; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+        .view-btn { padding: 6px 10px; background: white; border: none; cursor: pointer; font-size: 0.85rem; color: #888; }
+        .view-btn.active { background: #27ae27; color: white; }
+
+        /* Status / Loading */
+        #status { text-align: center; padding: 48px 20px; }
+        .spinner { display: inline-block; width: 36px; height: 36px; border: 3px solid #e0e0e0; border-top-color: #27ae27; border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #status p { margin-top: 14px; color: #888; font-size: 0.9rem; }
+
+        /* Error / fallback */
+        .fallback-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 32px; text-align: center; max-width: 560px; margin: 0 auto; }
+        .fallback-card .icon { font-size: 3rem; margin-bottom: 14px; }
+        .fallback-card h3 { font-size: 1.1rem; color: #333; margin-bottom: 10px; }
+        .fallback-card p { font-size: 0.88rem; color: #666; line-height: 1.6; margin-bottom: 20px; }
+        .visit-btn { display: inline-block; padding: 11px 28px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; text-decoration: none; color: white; }
+        .visit-btn.woolworths { background: #27ae27; }
+        .visit-btn.coles      { background: #c0392b; }
+        .visit-btn.aldi       { background: #0066cc; }
+        .api-note { margin-top: 16px; font-size: 0.75rem; color: #aaa; }
+
+        /* Stats bar */
+        .stats-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+        .stat-box { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); padding: 10px 16px; flex: 1; min-width: 110px; }
+        .stat-box .sv { font-size: 1.3rem; font-weight: 700; }
+        .stat-box .sl { font-size: 0.72rem; color: #999; margin-top: 2px; }
+        .sv.green { color: #27ae27; }
+        .sv.red   { color: #c0392b; }
+        .sv.blue  { color: #0066cc; }
+
+        /* Product grid */
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+        .products-list { display: flex; flex-direction: column; gap: 8px; }
+
+        /* Product card — grid */
+        .product-card {
+            background: white; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+            overflow: hidden; transition: transform 0.15s, box-shadow 0.15s; cursor: default;
+        }
+        .product-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+        .product-card .img-wrap { height: 140px; background: #f8f8f8; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        .product-card .img-wrap img { max-width: 100%; max-height: 100%; object-fit: contain; padding: 8px; }
+        .product-card .img-placeholder { font-size: 2.5rem; color: #ccc; }
+        .promo-badge { position: absolute; top: 8px; right: 8px; background: #e74c3c; color: white; font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+        .promo-badge.half { background: #e74c3c; }
+        .promo-badge.special { background: #e67e22; }
+        .product-card .card-body { padding: 12px 12px 14px; }
+        .product-name { font-size: 0.85rem; font-weight: 600; color: #222; line-height: 1.4; min-height: 2.4em; }
+        .product-size { font-size: 0.72rem; color: #aaa; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .price-row { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
+        .price-now { font-size: 1.15rem; font-weight: 800; }
+        .price-was { font-size: 0.78rem; color: #bbb; text-decoration: line-through; }
+        .saving-pill { font-size: 0.68rem; font-weight: 700; padding: 1px 7px; border-radius: 10px; background: #fdecea; color: #c0392b; }
+
+        /* Product row — list */
+        .product-row {
+            background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+            display: flex; align-items: center; gap: 14px; padding: 10px 16px;
+            transition: background 0.12s;
+        }
+        .product-row:hover { background: #f8fff8; }
+        .product-row .row-img { width: 56px; height: 56px; flex-shrink: 0; object-fit: contain; border-radius: 6px; background: #f8f8f8; }
+        .product-row .row-img-ph { width: 56px; height: 56px; flex-shrink: 0; background: #f8f8f8; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: #ccc; }
+        .product-row .row-main { flex: 1; min-width: 0; }
+        .product-row .row-name { font-size: 0.88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .product-row .row-size { font-size: 0.75rem; color: #aaa; }
+        .product-row .row-price { text-align: right; flex-shrink: 0; }
+        .product-row .row-now { font-size: 1rem; font-weight: 800; }
+        .product-row .row-was { font-size: 0.75rem; color: #bbb; text-decoration: line-through; }
+
+        /* Store accent colours */
+        .woolworths .price-now, .woolworths .sv { color: #27ae27; }
+        .woolworths .row-now { color: #27ae27; }
+        .coles      .price-now, .coles      .sv { color: #c0392b; }
+        .coles      .row-now  { color: #c0392b; }
+        .aldi       .price-now, .aldi       .sv { color: #0066cc; }
+        .aldi       .row-now  { color: #0066cc; }
+
+        /* Pagination */
+        .pagination { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 22px; }
+        .page-btn { padding: 7px 18px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 0.85rem; }
+        .page-btn:hover:not(:disabled) { background: #f0f0f0; }
+        .page-btn:disabled { opacity: 0.4; cursor: default; }
+        .page-info { font-size: 0.82rem; color: #888; }
+
+        .updated-note { font-size: 0.72rem; color: #bbb; margin-top: 14px; text-align: right; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>🛒 Supermarket Specials</h1>
+    <p>Live specials from Woolworths, Coles, and Aldi · Results cached for 1 hour</p>
+</header>
+<nav class="breadcrumb">
+    <a href="/">Home</a>
+    <span class="sep">›</span>
+    <span class="current">Supermarket Specials</span>
+</nav>
+
+<div class="container">
+    <!-- Store tabs -->
+    <div class="store-tabs">
+        <button class="store-tab woolworths active" onclick="switchStore('woolworths')">
+            <span class="tab-logo">🟢</span> Woolworths
+        </button>
+        <button class="store-tab coles" onclick="switchStore('coles')">
+            <span class="tab-logo">🔴</span> Coles
+        </button>
+        <button class="store-tab aldi" onclick="switchStore('aldi')">
+            <span class="tab-logo">🔵</span> Aldi
+        </button>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-bar">
+        <input class="search-box" type="text" id="searchBox" placeholder="Search products…" oninput="applyFilter()" />
+        <select class="sort-select" id="sortSelect" onchange="applyFilter()">
+            <option value="default">Default order</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="saving_desc">Biggest Saving</option>
+            <option value="name">Name A–Z</option>
+        </select>
+        <div class="controls-right">
+            <div class="view-toggle">
+                <button class="view-btn active" id="gridBtn" onclick="setView('grid')" title="Grid view">⊞</button>
+                <button class="view-btn" id="listBtn" onclick="setView('list')" title="List view">☰</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar hidden" id="statsBar">
+        <div class="stat-box"><div class="sv" id="sTotal">—</div><div class="sl">Specials</div></div>
+        <div class="stat-box"><div class="sv" id="sLowest">—</div><div class="sl">Lowest price</div></div>
+        <div class="stat-box"><div class="sv" id="sBiggest">—</div><div class="sl">Biggest saving</div></div>
+        <div class="stat-box"><div class="sv" id="sAvgSave">—</div><div class="sl">Avg discount</div></div>
+    </div>
+
+    <!-- Content -->
+    <div id="status">
+        <div class="spinner"></div>
+        <p>Loading specials…</p>
+    </div>
+    <div id="content" class="hidden"></div>
+
+    <!-- Pagination -->
+    <div class="pagination hidden" id="pagination">
+        <button class="page-btn" id="prevBtn" onclick="changePage(-1)" disabled>← Prev</button>
+        <span class="page-info" id="pageInfo"></span>
+        <button class="page-btn" id="nextBtn" onclick="changePage(1)">Next →</button>
+    </div>
+
+    <div class="updated-note hidden" id="updatedNote"></div>
+</div>
+
+<script>
+let currentStore = 'woolworths';
+let currentPage  = 1;
+let totalItems   = 0;
+let allProducts  = [];
+let currentView  = 'grid';
+
+const STORE_COLOURS = { woolworths: '#27ae27', coles: '#c0392b', aldi: '#0066cc' };
+const STORE_LINKS   = {
+    woolworths: 'https://www.woolworths.com.au/shop/specials/halfprice',
+    coles:      'https://www.coles.com.au/on-special',
+    aldi:       'https://www.aldi.com.au/en/specials/this-weeks-specials/',
+};
+const STORE_NAMES   = { woolworths: 'Woolworths', coles: 'Coles', aldi: 'Aldi' };
+
+function switchStore(store) {
+    currentStore = store;
+    currentPage  = 1;
+    allProducts  = [];
+    document.getElementById('searchBox').value = '';
+    document.querySelectorAll('.store-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.store-tab.${store}`).classList.add('active');
+    loadStore();
+}
+
+function setView(v) {
+    currentView = v;
+    document.getElementById('gridBtn').classList.toggle('active', v === 'grid');
+    document.getElementById('listBtn').classList.toggle('active', v === 'list');
+    applyFilter();
+}
+
+async function loadStore() {
+    document.getElementById('status').innerHTML = `<div class="spinner"></div><p>Loading ${STORE_NAMES[currentStore]} specials…</p>`;
+    document.getElementById('status').classList.remove('hidden');
+    document.getElementById('content').classList.add('hidden');
+    document.getElementById('statsBar').classList.add('hidden');
+    document.getElementById('pagination').classList.add('hidden');
+    document.getElementById('updatedNote').classList.add('hidden');
+
+    try {
+        const url = currentStore === 'aldi'
+            ? `/api/specials/aldi`
+            : `/api/specials/${currentStore}?page=${currentPage}`;
+
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        document.getElementById('status').classList.add('hidden');
+
+        if (data.error) {
+            showFallback(data.error, data.link);
+            return;
+        }
+
+        allProducts = data.products || [];
+        totalItems  = data.total  || allProducts.length;
+
+        if (data.updatedAt) {
+            const d = document.getElementById('updatedNote');
+            d.textContent = `Cached at ${new Date(data.updatedAt).toLocaleTimeString('en-AU')}`;
+            d.classList.remove('hidden');
+        }
+
+        applyFilter();
+        updatePagination(data);
+
+    } catch (e) {
+        document.getElementById('status').classList.add('hidden');
+        showFallback('Network error: ' + e.message, STORE_LINKS[currentStore]);
+    }
+}
+
+function showFallback(errorMsg, link) {
+    const store = currentStore;
+    const col   = STORE_COLOURS[store];
+    document.getElementById('content').innerHTML = `
+    <div class="fallback-card">
+        <div class="icon">🛒</div>
+        <h3>${STORE_NAMES[store]} specials unavailable</h3>
+        <p>${escHtml(errorMsg)}</p>
+        <a class="visit-btn ${store}" href="${escHtml(link || STORE_LINKS[store])}" target="_blank" rel="noopener">
+            View ${STORE_NAMES[store]} specials →
+        </a>
+        <p class="api-note">
+            Supermarkets don't provide public APIs for their specials. This page attempts to fetch live data
+            from each store's website — results depend on whether the request is accepted.
+        </p>
+    </div>`;
+    document.getElementById('content').classList.remove('hidden');
+    document.getElementById('statsBar').classList.add('hidden');
+}
+
+function applyFilter() {
+    const q    = (document.getElementById('searchBox').value || '').trim().toLowerCase();
+    const sort = document.getElementById('sortSelect').value;
+
+    let list = allProducts.filter(p => {
+        if (!q) return true;
+        return (p.name || '').toLowerCase().includes(q) ||
+               (p.category || '').toLowerCase().includes(q) ||
+               (p.promo || '').toLowerCase().includes(q);
+    });
+
+    list = sortProducts(list, sort);
+    updateStats(list);
+    render(list);
+}
+
+function sortProducts(list, sort) {
+    const l = [...list];
+    switch(sort) {
+        case 'price_asc':    return l.sort((a,b) => (a.price||0) - (b.price||0));
+        case 'price_desc':   return l.sort((a,b) => (b.price||0) - (a.price||0));
+        case 'saving_desc':  return l.sort((a,b) => saving(b) - saving(a));
+        case 'name':         return l.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+        default:             return l;
+    }
+}
+
+function saving(p) {
+    if (!p.wasPrice || !p.price) return 0;
+    return ((p.wasPrice - p.price) / p.wasPrice * 100);
+}
+
+function updateStats(list) {
+    const withPrice  = list.filter(p => p.price > 0);
+    const withSaving = list.filter(p => p.wasPrice > 0 && p.price > 0);
+    const col = STORE_COLOURS[currentStore];
+
+    document.getElementById('sTotal').textContent   = list.length;
+    document.getElementById('sTotal').style.color   = col;
+    document.getElementById('sLowest').textContent  = withPrice.length ? '$' + Math.min(...withPrice.map(p=>p.price)).toFixed(2) : '—';
+    document.getElementById('sLowest').style.color  = col;
+    document.getElementById('sBiggest').textContent = withSaving.length ? Math.max(...withSaving.map(p=>saving(p))).toFixed(0) + '% off' : '—';
+    document.getElementById('sBiggest').style.color = '#c0392b';
+    document.getElementById('sAvgSave').textContent = withSaving.length ? (withSaving.reduce((s,p)=>s+saving(p),0)/withSaving.length).toFixed(0) + '%' : '—';
+    document.getElementById('sAvgSave').style.color = '#e67e22';
+    document.getElementById('statsBar').classList.remove('hidden');
+}
+
+function render(list) {
+    if (!list.length) {
+        document.getElementById('content').innerHTML = `<div style="text-align:center;padding:48px;color:#aaa">No products match your search.</div>`;
+        document.getElementById('content').classList.remove('hidden');
+        return;
+    }
+
+    const html = currentView === 'list' ? renderList(list) : renderGrid(list);
+    document.getElementById('content').innerHTML = html;
+    document.getElementById('content').classList.remove('hidden');
+}
+
+function renderGrid(list) {
+    return `<div class="products-grid ${currentStore}">` + list.map(p => {
+        const priceFmt  = p.price  > 0 ? '$' + p.price.toFixed(2)  : '';
+        const wasFmt    = p.wasPrice > 0 ? '$' + p.wasPrice.toFixed(2) : '';
+        const savePct   = saving(p);
+        const promoLbl  = p.promo && p.promo.toLowerCase().includes('half') ? 'HALF PRICE' :
+                          savePct >= 5 ? Math.round(savePct) + '% OFF' : (p.promo || '');
+        const badgeCls  = p.promo && p.promo.toLowerCase().includes('half') ? 'half' : 'special';
+
+        return `
+        <div class="product-card">
+            <div class="img-wrap">
+                ${p.imageUrl
+                    ? `<img src="${escHtml(p.imageUrl)}" alt="${escHtml(p.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+                    : ''}
+                <div class="img-placeholder" ${p.imageUrl ? 'style="display:none"' : ''}>🛒</div>
+                ${promoLbl ? `<span class="promo-badge ${badgeCls}">${escHtml(promoLbl)}</span>` : ''}
+            </div>
+            <div class="card-body">
+                <div class="product-name">${escHtml(p.name || 'Unknown')}</div>
+                <div class="product-size">${escHtml(p.packageSize || p.category || '')}</div>
+                <div class="price-row">
+                    ${priceFmt ? `<span class="price-now">${priceFmt}</span>` : ''}
+                    ${wasFmt   ? `<span class="price-was">${wasFmt}</span>` : ''}
+                    ${savePct >= 5 ? `<span class="saving-pill">${Math.round(savePct)}% off</span>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('') + '</div>';
+}
+
+function renderList(list) {
+    const col = STORE_COLOURS[currentStore];
+    return `<div class="products-list ${currentStore}">` + list.map(p => {
+        const priceFmt = p.price  > 0 ? '$' + p.price.toFixed(2)  : '—';
+        const wasFmt   = p.wasPrice > 0 ? '$' + p.wasPrice.toFixed(2) : '';
+        return `
+        <div class="product-row">
+            ${p.imageUrl
+                ? `<img class="row-img" src="${escHtml(p.imageUrl)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=\'row-img-ph\'>🛒</div>'">`
+                : `<div class="row-img-ph">🛒</div>`}
+            <div class="row-main">
+                <div class="row-name">${escHtml(p.name || 'Unknown')}</div>
+                <div class="row-size">${escHtml(p.packageSize || p.category || p.promo || '')}</div>
+            </div>
+            <div class="row-price">
+                <div class="row-now" style="color:${col}">${priceFmt}</div>
+                ${wasFmt ? `<div class="row-was">${wasFmt}</div>` : ''}
+            </div>
+        </div>`;
+    }).join('') + '</div>';
+}
+
+function updatePagination(data) {
+    if (currentStore === 'aldi' || !data.total || data.total <= 36) {
+        document.getElementById('pagination').classList.add('hidden');
+        return;
+    }
+    const totalPages = Math.ceil(data.total / 36);
+    document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+    document.getElementById('prevBtn').disabled = currentPage <= 1;
+    document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+    document.getElementById('pagination').classList.remove('hidden');
+}
+
+function changePage(delta) {
+    currentPage += delta;
+    loadStore();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Boot
+loadStore();
+</script>
+</body>
+</html>

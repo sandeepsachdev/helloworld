@@ -241,7 +241,7 @@ async function fetchFlights() {
     document.getElementById('loadingOverlay').classList.remove('hidden');
     document.getElementById('refreshBtn').disabled = true;
 
-    const url = `https://opensky-network.org/api/states/all?lamin=${BOUNDS.lamin}&lamax=${BOUNDS.lamax}&lomin=${BOUNDS.lomin}&lomax=${BOUNDS.lomax}`;
+    const url = `/api/flights?lamin=${BOUNDS.lamin}&lamax=${BOUNDS.lamax}&lomin=${BOUNDS.lomin}&lomax=${BOUNDS.lomax}`;
 
     try {
         const resp = await fetch(url);
