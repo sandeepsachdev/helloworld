@@ -82,6 +82,8 @@
         .card-countries  { background: linear-gradient(135deg, #2c3e7a, #4a60b8); }
         .card-medical    { background: linear-gradient(135deg, #7f0000, #b71c1c); }
         .card-horoscopes { background: linear-gradient(135deg, #1a0533, #3d1472); }
+        .card-space      { background: linear-gradient(135deg, #060b18, #0f1f5c); border: 1px solid rgba(100,150,255,0.2); }
+        .card-flights    { background: linear-gradient(135deg, #021428, #0a2a50); border: 1px solid rgba(0,180,255,0.2); }
 
         .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
         .feature-tag {
@@ -219,6 +221,52 @@
         </div>
         <div class="card-footer">
             <span>Entertainment purposes only</span>
+            <span class="arrow">→</span>
+        </div>
+    </a>
+
+    <a href="space.html" class="app-card card-space">
+        <div class="card-header">
+            <div class="card-icon">🛸</div>
+            <div>
+                <div class="card-title">Space Explorer</div>
+                <div class="card-subtitle">Live data from NASA &amp; beyond</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-desc">Today's NASA astronomy picture, live ISS position updating every 5 seconds, upcoming rocket launches with countdowns, and near-Earth asteroids this week.</div>
+            <div class="tag-row">
+                <span class="feature-tag">NASA APOD</span>
+                <span class="feature-tag">ISS live track</span>
+                <span class="feature-tag">Launch countdowns</span>
+                <span class="feature-tag">Asteroid radar</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <span>NASA · Space Devs · wheretheiss.at</span>
+            <span class="arrow">→</span>
+        </div>
+    </a>
+
+    <a href="flights.html" class="app-card card-flights">
+        <div class="card-header">
+            <div class="card-icon">🛩️</div>
+            <div>
+                <div class="card-title">Sydney Flight Tracker</div>
+                <div class="card-subtitle">Live aircraft over Sydney airspace</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-desc">Real-time aircraft positions over Greater Sydney on an interactive dark map. Click any plane for altitude, speed, heading, and vertical rate. Auto-refreshes every 30 seconds.</div>
+            <div class="tag-row">
+                <span class="feature-tag">Live positions</span>
+                <span class="feature-tag">Interactive map</span>
+                <span class="feature-tag">Altitude &amp; speed</span>
+                <span class="feature-tag">Auto-refresh</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <span>OpenSky Network · CartoDB · Leaflet</span>
             <span class="arrow">→</span>
         </div>
     </a>
