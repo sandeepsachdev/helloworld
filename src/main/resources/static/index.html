@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explorer Hub</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #fff;
+        }
+        header { text-align: center; padding: 60px 20px 40px; }
+        header h1 { font-size: 2.8rem; font-weight: 800; letter-spacing: -0.02em; }
+        header h1 span { background: linear-gradient(90deg, #e94560, #f5a623, #4ecdc4, #a29bfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        header p { font-size: 1.05rem; opacity: 0.65; margin-top: 10px; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+            max-width: 1100px;
+            margin: 0 auto 60px;
+            padding: 0 24px;
+        }
+
+        .app-card {
+            border-radius: 16px;
+            overflow: hidden;
+            text-decoration: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .app-card:hover { transform: translateY(-6px); box-shadow: 0 20px 48px rgba(0,0,0,0.45); }
+
+        .card-header {
+            padding: 28px 28px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .card-icon {
+            font-size: 2.8rem;
+            width: 64px;
+            height: 64px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .card-title { font-size: 1.25rem; font-weight: 700; }
+        .card-subtitle { font-size: 0.82rem; opacity: 0.75; margin-top: 3px; }
+
+        .card-body { padding: 0 28px 24px; }
+        .card-desc { font-size: 0.9rem; opacity: 0.85; line-height: 1.6; }
+
+        .card-footer {
+            margin-top: auto;
+            padding: 14px 28px;
+            background: rgba(0,0,0,0.15);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            opacity: 0.8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-footer .arrow { font-size: 1.1rem; opacity: 0.7; }
+
+        /* Individual card themes */
+        .card-suburbs    { background: linear-gradient(135deg, #7a3000, #c05e00); }
+        .card-birthdays  { background: linear-gradient(135deg, #5b2d8e, #8b44c8); }
+        .card-trending   { background: linear-gradient(135deg, #1a6e3c, #2aa65a); }
+        .card-countries  { background: linear-gradient(135deg, #2c3e7a, #4a60b8); }
+        .card-medical    { background: linear-gradient(135deg, #7f0000, #b71c1c); }
+        .card-horoscopes { background: linear-gradient(135deg, #1a0533, #3d1472); }
+
+        .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+        .feature-tag {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.18);
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.8rem;
+            opacity: 0.35;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1><span>Explorer Hub</span></h1>
+    <p>A collection of data-driven pages powered by public APIs</p>
+</header>
+
+<div class="grid">
+
+    <a href="suburbs.html" class="app-card card-suburbs">
+        <div class="card-header">
+            <div class="card-icon">🏙️</div>
+            <div>
+                <div class="card-title">Sydney Suburbs</div>
+                <div class="card-subtitle">Demographics across Greater Sydney</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-desc">Explore population, income, age, cultural diversity, and density data for 60+ Sydney suburbs, with Wikipedia descriptions on demand.</div>
+            <div class="tag-row">
+                <span class="feature-tag">60+ suburbs</span>
+                <span class="feature-tag">ABS Census 2021</span>
+                <span class="feature-tag">Filter by region</span>
+                <span class="feature-tag">Cards &amp; table view</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <span>ABS Census · Wikipedia</span>
+            <span class="arrow">→</span>
+        </div>
+    </a>
+
+    <a href="birthdays.html" class="app-card card-birthdays">
+        <div class="card-header">
+            <div class="card-icon">🎂</div>
+            <div>
+                <div class="card-title">Celebrity Birthdays</div>
+                <div class="card-subtitle">Famous people born this week</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-desc">Discover which celebrities and historical figures share a birthday today or in the coming 7 days, with photos and biographies.</div>
+            <div class="tag-row">
+                <span class="feature-tag">Today + 7 days</span>
+                <span class="feature-tag">Photos & bios</span>
+                <span class="feature-tag">Live filter</span>
+                <span class="feature-tag">Wikipedia links</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <span>Wikipedia REST API</span>
+            <span class="arrow">→</span>
+        </div>
+    </a>
+
+    <a href="trending.html" class="app-card card-trending">
+        <div class="card-header">
+            <div class="card-icon">📈</div>
+            <div>
+                <div class="card-title">Trending on Wikipedia</div>
+                <div class="card-subtitle">Most-read articles today</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-desc">See the top 1000 most-read Wikipedia articles for any day, with view counts, summaries, and images loaded in real-time.</div>
+            <div class="tag-row">
+                <span class="feature-tag">Daily top 1000</span>
+                <span class="feature-tag">Date navigation</span>
+                <span class="feature-tag">View counts</span>
+                <span class="feature-tag">Live filter</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <span>Wikimedia Pageviews API</span>
+            <span class="arrow">→</span>
+        </div>
+    </a>
+
+    <a href="countries.html" class="app-card card-countries">
+        <div class="card-header">
+            <div class="card-icon">🌍</div>
+            <div>
+                <div class="card-title">Countries of the World</div>
+                <div class="card-subtitle">Ranked by any criterion</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-desc">Rank all countries by population, GDP, industry, health spending, CO₂ emissions, literacy, religion, and more — with live filtering by region.</div>
+            <div class="tag-row">
+                <span class="feature-tag">10+ indicators</span>
+                <span class="feature-tag">Region filter</span>
+                <span class="feature-tag">Religion groups</span>
+                <span class="feature-tag">Visual bars</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <span>REST Countries · World Bank API</span>
+            <span class="arrow">→</span>
+        </div>
+    </a>
+
+    <a href="horoscopes.html" class="app-card card-horoscopes">
+        <div class="card-header">
+            <div class="card-icon">✨</div>
+            <div>
+                <div class="card-title">Daily Horoscopes</div>
+                <div class="card-subtitle">Celestial readings for all twelve signs</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-desc">Read your daily horoscope for love, career, and health. Covers all twelve signs with star ratings, lucky numbers, and a 7-day date range.</div>
+            <div class="tag-row">
+                <span class="feature-tag">All 12 signs</span>
+                <span class="feature-tag">Love · Career · Health</span>
+                <span class="feature-tag">Lucky number & colour</span>
+                <span class="feature-tag">7-day range</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <span>Entertainment purposes only</span>
+            <span class="arrow">→</span>
+        </div>
+    </a>
+
+    <a href="medical.html" class="app-card card-medical">
+        <div class="card-header">
+            <div class="card-icon">🩺</div>
+            <div>
+                <div class="card-title">Medical Conditions</div>
+                <div class="card-subtitle">Conditions, symptoms & treatments</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-desc">Search any medical condition to see an overview, treatment approaches, causes, symptoms, and linked article sections from Wikipedia.</div>
+            <div class="tag-row">
+                <span class="feature-tag">Autocomplete search</span>
+                <span class="feature-tag">Treatments</span>
+                <span class="feature-tag">Causes & symptoms</span>
+                <span class="feature-tag">Quick launch</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <span>Wikipedia REST API</span>
+            <span class="arrow">→</span>
+        </div>
+    </a>
+
+</div>
+
+<footer>All data sourced from public APIs. No data is stored or collected by this application.</footer>
+</body>
+</html>

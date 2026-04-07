@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Countries of the World</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
+        header { background: #2c3e7a; color: white; padding: 20px 40px; }
+        header h1 { font-size: 1.6rem; font-weight: 600; }
+        header p { font-size: 0.9rem; opacity: 0.75; margin-top: 4px; }
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
+
+        /* Toolbar */
+        .toolbar { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 18px 24px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+        .field { display: flex; flex-direction: column; gap: 5px; }
+        .field label { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #666; }
+        .field select, .field input { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.92rem; }
+        .field select:focus, .field input:focus { outline: none; border-color: #2c3e7a; }
+        .field input { width: 200px; }
+        .field select { min-width: 240px; }
+        .region-select { min-width: 160px; }
+        .order-select { min-width: 120px; }
+
+        /* Stats */
+        .stat-bar { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+        .stat-box { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 12px 20px; flex: 1; min-width: 130px; }
+        .stat-box .val { font-size: 1.6rem; font-weight: 700; color: #2c3e7a; }
+        .stat-box .lbl { font-size: 0.78rem; color: #777; margin-top: 2px; }
+
+        /* Status */
+        #status { font-size: 0.92rem; color: #555; padding: 24px 0; text-align: center; min-height: 40px; }
+        #status.error { color: #c0392b; }
+        .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid #ddd; border-top-color: #2c3e7a; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Religion group view */
+        .religion-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .religion-card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+        .religion-header { padding: 14px 18px; color: white; display: flex; align-items: center; gap: 12px; }
+        .religion-icon { font-size: 1.8rem; }
+        .religion-name { font-size: 1.1rem; font-weight: 700; }
+        .religion-stats { font-size: 0.82rem; opacity: 0.85; }
+        .religion-countries { padding: 12px 16px; max-height: 220px; overflow-y: auto; }
+        .religion-country-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.85rem; }
+        .religion-country-item:last-child { border-bottom: none; }
+        .flag-emoji { font-size: 1.2rem; }
+
+        /* Ranked list view */
+        .ranked-list { display: flex; flex-direction: column; gap: 8px; }
+        .rank-card {
+            background: white; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+            display: flex; align-items: center; gap: 0; overflow: hidden;
+            transition: transform 0.12s, box-shadow 0.12s;
+        }
+        .rank-card:hover { transform: translateX(3px); box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
+        .rank-num {
+            min-width: 56px; padding: 0 12px; text-align: center;
+            font-size: 1.2rem; font-weight: 800; color: #2c3e7a;
+            align-self: stretch; display: flex; align-items: center; justify-content: center;
+            background: #eef0fa;
+        }
+        .rank-num.gold   { background: #fff8e1; color: #f59e0b; }
+        .rank-num.silver { background: #f5f5f5; color: #9e9e9e; }
+        .rank-num.bronze { background: #fdf0e6; color: #cd7f32; }
+        .flag-col { font-size: 2rem; padding: 0 14px; flex-shrink: 0; }
+        .country-info { flex: 1; padding: 12px 0; min-width: 0; }
+        .country-name { font-weight: 700; font-size: 0.98rem; color: #1a2450; }
+        .country-sub { font-size: 0.78rem; color: #888; margin-top: 2px; }
+        .value-col { padding: 0 20px; text-align: right; flex-shrink: 0; min-width: 130px; }
+        .value-num { font-size: 1.05rem; font-weight: 700; color: #2c3e7a; }
+        .value-unit { font-size: 0.75rem; color: #999; }
+        .bar-col { padding: 0 20px 0 0; width: 180px; flex-shrink: 0; }
+        .bar-track { background: #eef0fa; border-radius: 4px; height: 8px; width: 100%; }
+        .bar-fill { height: 8px; border-radius: 4px; background: #2c3e7a; transition: width 0.4s; }
+        .bar-fill.gold   { background: #f59e0b; }
+        .bar-fill.silver { background: #9e9e9e; }
+        .bar-fill.bronze { background: #cd7f32; }
+
+        .source { font-size: 0.78rem; color: #aaa; text-align: right; margin-top: 14px; }
+        .hidden { display: none; }
+        .data-note { font-size: 0.82rem; color: #888; background: #fffbea; border: 1px solid #ffe58f; border-radius: 6px; padding: 8px 14px; margin-bottom: 16px; }
+        .breadcrumb { background: #1e2d5e; padding: 8px 40px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; }
+        .breadcrumb a { color: rgba(255,255,255,0.65); text-decoration: none; }
+        .breadcrumb a:hover { color: white; text-decoration: underline; }
+        .breadcrumb .sep { color: rgba(255,255,255,0.35); }
+        .breadcrumb .current { color: rgba(255,255,255,0.9); }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Countries of the World</h1>
+    <p>Ranked by population, wealth, religion, industry, and more</p>
+</header>
+<nav class="breadcrumb">
+    <a href="/">Home</a>
+    <span class="sep">›</span>
+    <span class="current">Countries of the World</span>
+</nav>
+
+<div class="container">
+    <div class="toolbar">
+        <div class="field">
+            <label>Rank by</label>
+            <select id="criterionSelect" onchange="onCriterionChange()">
+                <optgroup label="People">
+                    <option value="population">Population</option>
+                    <option value="area">Land Area (km²)</option>
+                    <option value="density">Population Density (per km²)</option>
+                </optgroup>
+                <optgroup label="Wealth">
+                    <option value="gdp">GDP — Total (USD)</option>
+                    <option value="gdppc">GDP per Capita (USD)</option>
+                    <option value="gini">Inequality — GINI Index</option>
+                </optgroup>
+                <optgroup label="Industry & Economy">
+                    <option value="industry">Industry (% of GDP)</option>
+                    <option value="agriculture">Agriculture (% of GDP)</option>
+                    <option value="services">Services (% of GDP)</option>
+                    <option value="fdi">Foreign Direct Investment (% of GDP)</option>
+                </optgroup>
+                <optgroup label="Society">
+                    <option value="literacy">Literacy Rate (%)</option>
+                    <option value="health">Health Expenditure (% of GDP)</option>
+                    <option value="military">Military Spending (% of GDP)</option>
+                    <option value="co2">CO₂ Emissions per Capita (tonnes)</option>
+                </optgroup>
+                <optgroup label="Religion">
+                    <option value="religion">Dominant Religion (grouped)</option>
+                </optgroup>
+            </select>
+        </div>
+        <div class="field">
+            <label>Region</label>
+            <select id="regionSelect" class="region-select" onchange="render()">
+                <option value="">All Regions</option>
+                <option value="Africa">Africa</option>
+                <option value="Americas">Americas</option>
+                <option value="Asia">Asia</option>
+                <option value="Europe">Europe</option>
+                <option value="Oceania">Oceania</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Order</label>
+            <select id="orderSelect" class="order-select" onchange="render()">
+                <option value="desc">Highest first</option>
+                <option value="asc">Lowest first</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Search</label>
+            <input type="text" id="searchInput" placeholder="Country name…" oninput="render()" />
+        </div>
+    </div>
+
+    <div class="stat-bar hidden" id="statBar">
+        <div class="stat-box"><div class="val" id="s1">—</div><div class="lbl" id="s1l">Countries</div></div>
+        <div class="stat-box"><div class="val" id="s2">—</div><div class="lbl" id="s2l">World total / top</div></div>
+        <div class="stat-box"><div class="val" id="s3">—</div><div class="lbl" id="s3l">Average</div></div>
+        <div class="stat-box"><div class="val" id="s4">—</div><div class="lbl" id="s4l">#1 country</div></div>
+    </div>
+
+    <div id="status"><span class="spinner"></span> Loading country data…</div>
+    <div id="dataNote" class="data-note hidden"></div>
+    <div id="content"></div>
+    <p class="source hidden" id="srcNote"></p>
+</div>
+
+<script>
+// ─── Religion lookup (ISO alpha-3 → dominant religion) ────────────────────────
+const RELIGION = {
+    // Christianity
+    USA:'Christianity',GBR:'Christianity',AUS:'Christianity',CAN:'Christianity',
+    DEU:'Christianity',ITA:'Christianity',ESP:'Christianity',PRT:'Christianity',
+    FRA:'Christianity',POL:'Christianity',UKR:'Christianity',RUS:'Christianity',
+    BRA:'Christianity',MEX:'Christianity',ARG:'Christianity',COL:'Christianity',
+    CHL:'Christianity',PER:'Christianity',VEN:'Christianity',ECU:'Christianity',
+    BOL:'Christianity',PRY:'Christianity',URY:'Christianity',GTM:'Christianity',
+    HND:'Christianity',SLV:'Christianity',NIC:'Christianity',CRI:'Christianity',
+    PAN:'Christianity',DOM:'Christianity',HTI:'Christianity',JAM:'Christianity',
+    TTO:'Christianity',BLZ:'Christianity',GUY:'Christianity',
+    PHL:'Christianity',PNG:'Christianity',FJI:'Christianity',
+    NGA:'Christianity',ETH:'Christianity',KEN:'Christianity',TZA:'Christianity',
+    UGA:'Christianity',ZAF:'Christianity',ZWE:'Christianity',ZMB:'Christianity',
+    MOZ:'Christianity',MWI:'Christianity',COD:'Christianity',AGO:'Christianity',
+    CMR:'Christianity',GHA:'Christianity',RWA:'Christianity',BDI:'Christianity',
+    NAM:'Christianity',BWA:'Christianity',LSO:'Christianity',SWZ:'Christianity',
+    STP:'Christianity',CPV:'Christianity',COG:'Christianity',GAB:'Christianity',
+    GNQ:'Christianity',TGO:'Christianity',BEN:'Christianity',CAF:'Christianity',
+    BEL:'Christianity',NLD:'Christianity',CHE:'Christianity',AUT:'Christianity',
+    SWE:'Christianity',NOR:'Christianity',DNK:'Christianity',FIN:'Christianity',
+    GRC:'Christianity',HUN:'Christianity',SVK:'Christianity',ROU:'Christianity',
+    BGR:'Christianity',SRB:'Christianity',HRV:'Christianity',SVN:'Christianity',
+    MDA:'Christianity',BLR:'Christianity',LTU:'Christianity',LVA:'Christianity',
+    EST:'Christianity',ARM:'Christianity',GEO:'Christianity',NZL:'Christianity',
+    IRL:'Christianity',LUX:'Christianity',ISL:'Christianity',MLT:'Christianity',
+    MKD:'Christianity',MNE:'Christianity',CYP:'Christianity',
+    // Christianity — secular-leaning but Christian-majority
+    CZE:'Christianity',
+    // Islam
+    SAU:'Islam',IRN:'Islam',IRQ:'Islam',PAK:'Islam',BGD:'Islam',IDN:'Islam',
+    EGY:'Islam',TUR:'Islam',MAR:'Islam',DZA:'Islam',TUN:'Islam',LBY:'Islam',
+    MYS:'Islam',UZB:'Islam',KAZ:'Islam',TKM:'Islam',KGZ:'Islam',TJK:'Islam',
+    AZE:'Islam',AFG:'Islam',YEM:'Islam',SYR:'Islam',JOR:'Islam',LBN:'Islam',
+    KWT:'Islam',ARE:'Islam',QAT:'Islam',BHR:'Islam',OMN:'Islam',PSE:'Islam',
+    SEN:'Islam',GMB:'Islam',GNB:'Islam',GIN:'Islam',SLE:'Islam',MRT:'Islam',
+    MLI:'Islam',NER:'Islam',TCD:'Islam',SDN:'Islam',SOM:'Islam',DJI:'Islam',
+    COM:'Islam',MDV:'Islam',BRN:'Islam',ALB:'Islam',XKX:'Islam',
+    // Hinduism
+    IND:'Hinduism',NPL:'Hinduism',
+    // Buddhism
+    THA:'Buddhism',MMR:'Buddhism',KHM:'Buddhism',LAO:'Buddhism',MNG:'Buddhism',
+    BTN:'Buddhism',LKA:'Buddhism',JPN:'Buddhism',
+    // Judaism
+    ISR:'Judaism',
+    // Secular / Non-religious dominant
+    CHN:'Secular',PRK:'Secular',VNM:'Secular',CUB:'Secular',
+    // Mixed / Other
+    SGP:'Mixed',MUS:'Mixed',SUR:'Mixed',BIH:'Mixed',KOR:'Mixed',TWN:'Mixed',
+    MDG:'Mixed',CMR:'Mixed',
+};
+
+const RELIGION_META = {
+    'Christianity': { color: '#1565c0', icon: '✝️' },
+    'Islam':        { color: '#1b5e20', icon: '☪️' },
+    'Hinduism':     { color: '#e65100', icon: '🕉️' },
+    'Buddhism':     { color: '#f9a825', icon: '☸️' },
+    'Judaism':      { color: '#4a148c', icon: '✡️' },
+    'Secular':      { color: '#37474f', icon: '🏛️' },
+    'Mixed':        { color: '#6a1b9a', icon: '🌐' },
+    'Unknown':      { color: '#78909c', icon: '❓' },
+};
+
+// ─── World Bank indicator codes ───────────────────────────────────────────────
+const WB_INDICATORS = {
+    gdp:         { code: 'NY.GDP.MKTP.CD',      label: 'GDP (USD)',               fmt: fmtUSD,    unit: '' },
+    gdppc:       { code: 'NY.GDP.PCAP.CD',      label: 'GDP per Capita (USD)',    fmt: fmtUSD,    unit: '' },
+    gini:        { code: 'SI.POV.GINI',         label: 'GINI Index',              fmt: fmtDec1,   unit: '(0–100)' },
+    industry:    { code: 'NV.IND.TOTL.ZS',      label: 'Industry (% of GDP)',     fmt: fmtDec1,   unit: '% of GDP' },
+    agriculture: { code: 'NV.AGR.TOTL.ZS',      label: 'Agriculture (% of GDP)', fmt: fmtDec1,   unit: '% of GDP' },
+    services:    { code: 'NV.SRV.TOTL.ZS',      label: 'Services (% of GDP)',     fmt: fmtDec1,   unit: '% of GDP' },
+    fdi:         { code: 'BX.KLT.DINV.WD.GD.ZS',label: 'FDI (% of GDP)',         fmt: fmtDec1,   unit: '% of GDP' },
+    literacy:    { code: 'SE.ADT.LITR.ZS',      label: 'Literacy Rate (%)',       fmt: fmtDec1,   unit: '%' },
+    health:      { code: 'SH.XPD.CHEX.GD.ZS',  label: 'Health Exp. (% GDP)',     fmt: fmtDec1,   unit: '% of GDP' },
+    military:    { code: 'MS.MIL.XPND.GD.ZS',  label: 'Military (% GDP)',        fmt: fmtDec1,   unit: '% of GDP' },
+    co2:         { code: 'EN.ATM.CO2E.PC',      label: 'CO₂ per Capita (t)',      fmt: fmtDec1,   unit: 'tonnes' },
+};
+
+// ─── Caches ───────────────────────────────────────────────────────────────────
+let countriesBase = [];      // from REST Countries API
+let wbCache = {};            // criterion → Map<cca3, value>
+let currentCriterion = 'population';
+
+// ─── Formatters ───────────────────────────────────────────────────────────────
+function fmtNum(n) {
+    if (n == null) return '—';
+    if (n >= 1e12) return (n/1e12).toFixed(2) + 'T';
+    if (n >= 1e9)  return (n/1e9).toFixed(2) + 'B';
+    if (n >= 1e6)  return (n/1e6).toFixed(1) + 'M';
+    if (n >= 1e3)  return (n/1e3).toFixed(1) + 'K';
+    return n.toLocaleString();
+}
+function fmtUSD(n) { return n == null ? '—' : '$' + fmtNum(n); }
+function fmtDec1(n) { return n == null ? '—' : Number(n).toFixed(1); }
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Data loading ─────────────────────────────────────────────────────────────
+async function loadCountries() {
+    const resp = await fetch('https://restcountries.com/v3.1/all?fields=name,cca3,flags,region,subregion,population,area,languages');
+    if (!resp.ok) throw new Error('REST Countries: ' + resp.status);
+    return resp.json();
+}
+
+async function loadWorldBank(indicator) {
+    if (wbCache[indicator]) return wbCache[indicator];
+    const url = `https://api.worldbank.org/v2/country/all/indicator/${indicator}?format=json&per_page=300&mrv=1`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('World Bank: ' + resp.status);
+    const json = await resp.json();
+    const map = new Map();
+    (json[1] || []).forEach(entry => {
+        if (entry.value != null && entry.countryiso3code) {
+            map.set(entry.countryiso3code.toUpperCase(), { value: entry.value, year: entry.date });
+        }
+    });
+    wbCache[indicator] = map;
+    return map;
+}
+
+// ─── Medal helper ─────────────────────────────────────────────────────────────
+function medal(rank) {
+    if (rank === 1) return 'gold';
+    if (rank === 2) return 'silver';
+    if (rank === 3) return 'bronze';
+    return '';
+}
+
+// ─── Render ranked list ───────────────────────────────────────────────────────
+function renderRanked(items, valueLabel, fmtFn, unitStr, sourceStr, yearNote) {
+    const order = document.getElementById('orderSelect').value;
+    if (order === 'asc') items = [...items].reverse();
+
+    const maxVal = Math.max(...items.map(i => i.value));
+
+    let totalViews = 0;
+    items.forEach(i => totalViews += i.value);
+    const avg = items.length ? totalViews / items.length : 0;
+
+    document.getElementById('s1').textContent = items.length.toLocaleString();
+    document.getElementById('s1l').textContent = 'Countries shown';
+    document.getElementById('s2').textContent = fmtFn(totalViews);
+    document.getElementById('s2l').textContent = 'Combined total';
+    document.getElementById('s3').textContent = fmtFn(avg);
+    document.getElementById('s3l').textContent = 'Average';
+    document.getElementById('s4').textContent = items.length ? escHtml(items[0].name) : '—';
+    document.getElementById('s4l').textContent = order === 'desc' ? 'Highest ranked' : 'Lowest ranked';
+    document.getElementById('statBar').classList.remove('hidden');
+
+    const html = items.map((item, idx) => {
+        const rank = idx + 1;
+        const m = medal(rank);
+        const pct = maxVal > 0 ? (item.value / maxVal * 100) : 0;
+        return `
+        <div class="rank-card">
+            <div class="rank-num ${m}">#${rank}</div>
+            <div class="flag-col">${item.flag}</div>
+            <div class="country-info">
+                <div class="country-name">${escHtml(item.name)}</div>
+                <div class="country-sub">${escHtml(item.region)}${item.subregion ? ' · ' + item.subregion : ''}</div>
+            </div>
+            <div class="value-col">
+                <div class="value-num">${fmtFn(item.value)}</div>
+                <div class="value-unit">${unitStr}</div>
+            </div>
+            <div class="bar-col">
+                <div class="bar-track"><div class="bar-fill ${m}" style="width:${pct.toFixed(1)}%"></div></div>
+            </div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('content').innerHTML = `<div class="ranked-list">${html}</div>`;
+    document.getElementById('srcNote').textContent = sourceStr + (yearNote ? ' · ' + yearNote : '');
+    document.getElementById('srcNote').classList.remove('hidden');
+}
+
+// ─── Render religion groups ───────────────────────────────────────────────────
+function renderReligion(filteredCountries) {
+    const groups = {};
+    filteredCountries.forEach(c => {
+        const rel = RELIGION[c.cca3] || 'Unknown';
+        if (!groups[rel]) groups[rel] = { countries: [], pop: 0 };
+        groups[rel].countries.push(c);
+        groups[rel].pop += c.population;
+    });
+
+    const sorted = Object.entries(groups).sort((a, b) => b[1].pop - a[1].pop);
+    const totalPop = sorted.reduce((s, [, g]) => s + g.pop, 0);
+
+    document.getElementById('s1').textContent = filteredCountries.length.toLocaleString();
+    document.getElementById('s1l').textContent = 'Countries';
+    document.getElementById('s2').textContent = Object.keys(groups).length;
+    document.getElementById('s2l').textContent = 'Religions represented';
+    document.getElementById('s3').textContent = fmtNum(totalPop);
+    document.getElementById('s3l').textContent = 'Combined population';
+    document.getElementById('s4').textContent = sorted.length ? sorted[0][0] : '—';
+    document.getElementById('s4l').textContent = 'Largest by population';
+    document.getElementById('statBar').classList.remove('hidden');
+
+    const html = sorted.map(([rel, grp]) => {
+        const meta = RELIGION_META[rel] || RELIGION_META['Unknown'];
+        const pct = totalPop > 0 ? (grp.pop / totalPop * 100).toFixed(1) : 0;
+        const cSorted = [...grp.countries].sort((a, b) => b.population - a.population);
+        const countryItems = cSorted.map(c =>
+            `<div class="religion-country-item">
+                <span class="flag-emoji">${c.flags?.emoji || '🏳'}</span>
+                <span>${escHtml(c.name.common)}</span>
+                <span style="margin-left:auto;color:#999;font-size:0.78rem">${fmtNum(c.population)}</span>
+            </div>`
+        ).join('');
+        return `
+        <div class="religion-card">
+            <div class="religion-header" style="background:${meta.color}">
+                <span class="religion-icon">${meta.icon}</span>
+                <div>
+                    <div class="religion-name">${escHtml(rel)}</div>
+                    <div class="religion-stats">${grp.countries.length} countries · ${fmtNum(grp.pop)} people · ${pct}% of total</div>
+                </div>
+            </div>
+            <div class="religion-countries">${countryItems}</div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('content').innerHTML = `<div class="religion-grid">${html}</div>`;
+    document.getElementById('srcNote').textContent = 'Religion classification based on CIA World Factbook & Pew Research data (approximate — dominant religion per country).';
+    document.getElementById('srcNote').classList.remove('hidden');
+}
+
+// ─── Main render ─────────────────────────────────────────────────────────────
+async function render() {
+    const criterion  = document.getElementById('criterionSelect').value;
+    const regionFilt = document.getElementById('regionSelect').value;
+    const search     = document.getElementById('searchInput').value.trim().toLowerCase();
+
+    let countries = countriesBase.filter(c => {
+        if (regionFilt && c.region !== regionFilt) return false;
+        if (search && !c.name.common.toLowerCase().includes(search)) return false;
+        return true;
+    });
+
+    document.getElementById('dataNote').classList.add('hidden');
+
+    // Religion: grouped view
+    if (criterion === 'religion') {
+        renderReligion(countries);
+        return;
+    }
+
+    // Local criteria
+    if (criterion === 'population' || criterion === 'area' || criterion === 'density') {
+        let items;
+        if (criterion === 'population') {
+            items = countries.filter(c => c.population > 0).map(c => ({
+                name: c.name.common, flag: c.flags?.emoji || '🏳', region: c.region,
+                subregion: c.subregion, value: c.population,
+            }));
+            items.sort((a, b) => b.value - a.value);
+            renderRanked(items, 'Population', fmtNum, 'people', 'REST Countries API', '');
+        } else if (criterion === 'area') {
+            items = countries.filter(c => c.area > 0).map(c => ({
+                name: c.name.common, flag: c.flags?.emoji || '🏳', region: c.region,
+                subregion: c.subregion, value: c.area,
+            }));
+            items.sort((a, b) => b.value - a.value);
+            renderRanked(items, 'Area', v => fmtNum(v), 'km²', 'REST Countries API', '');
+        } else {
+            items = countries.filter(c => c.area > 0 && c.population > 0).map(c => ({
+                name: c.name.common, flag: c.flags?.emoji || '🏳', region: c.region,
+                subregion: c.subregion, value: c.population / c.area,
+            }));
+            items.sort((a, b) => b.value - a.value);
+            renderRanked(items, 'Density', v => v.toFixed(1), 'per km²', 'REST Countries API', '');
+        }
+        return;
+    }
+
+    // World Bank criteria
+    const ind = WB_INDICATORS[criterion];
+    if (!ind) return;
+
+    setStatus('<span class="spinner"></span> Fetching World Bank data…');
+    try {
+        const wbMap = await loadWorldBank(ind.code);
+
+        // Build country lookup map by cca3
+        const countryMap = new Map(countriesBase.map(c => [c.cca3, c]));
+
+        let yearNote = '';
+        const items = [];
+        countries.forEach(c => {
+            const entry = wbMap.get(c.cca3);
+            if (!entry) return;
+            if (!yearNote && entry.year) yearNote = `Most recent data year: ${entry.year}`;
+            items.push({
+                name: c.name.common, flag: c.flags?.emoji || '🏳',
+                region: c.region, subregion: c.subregion,
+                value: entry.value,
+            });
+        });
+        items.sort((a, b) => b.value - a.value);
+
+        const missing = countries.length - items.length;
+        if (missing > 0) {
+            const note = document.getElementById('dataNote');
+            note.textContent = `${missing} countries excluded — no World Bank data available for this indicator.`;
+            note.classList.remove('hidden');
+        }
+
+        setStatus('');
+        renderRanked(items, ind.label, ind.fmt, ind.unit, 'World Bank Open Data API', yearNote);
+    } catch (e) {
+        setStatus('Failed to load World Bank data: ' + e.message, true);
+    }
+}
+
+function setStatus(msg, isError) {
+    const el = document.getElementById('status');
+    el.innerHTML = msg;
+    el.className = isError ? 'error' : '';
+}
+
+function onCriterionChange() {
+    const c = document.getElementById('criterionSelect').value;
+    const isWB = WB_INDICATORS[c];
+    // Hide order selector for religion grouped view
+    document.getElementById('orderSelect').closest('.field').style.display =
+        c === 'religion' ? 'none' : '';
+    currentCriterion = c;
+    render();
+}
+
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
+(async () => {
+    try {
+        setStatus('<span class="spinner"></span> Loading country data…');
+        countriesBase = await loadCountries();
+        // sort a default
+        countriesBase.sort((a, b) => b.population - a.population);
+        setStatus('');
+        render();
+    } catch (e) {
+        setStatus('Failed to load: ' + e.message, true);
+    }
+})();
+</script>
+</body>
+</html>

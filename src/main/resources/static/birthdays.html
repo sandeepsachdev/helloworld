@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Celebrity Birthdays This Week</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
+        header { background: #5b2d8e; color: white; padding: 20px 40px; }
+        header h1 { font-size: 1.6rem; font-weight: 600; }
+        header p { font-size: 0.9rem; opacity: 0.75; margin-top: 4px; }
+        .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+        .day-section { margin-bottom: 32px; }
+        .day-header {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 14px;
+        }
+        .day-badge {
+            background: #5b2d8e; color: white; border-radius: 8px;
+            padding: 6px 16px; font-weight: 700; font-size: 0.9rem;
+            white-space: nowrap;
+        }
+        .day-badge.today { background: #e67e22; }
+        .day-label { font-size: 1.1rem; font-weight: 600; color: #444; }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .celeb-card {
+            background: white; border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden; display: flex; flex-direction: column;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .celeb-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.13); }
+        .celeb-thumb {
+            width: 100%; height: 160px; object-fit: cover;
+            background: #e8daf5;
+        }
+        .celeb-thumb-placeholder {
+            width: 100%; height: 160px;
+            background: linear-gradient(135deg, #e8daf5, #d0baf0);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 3rem; color: #9b6dcc;
+        }
+        .celeb-body { padding: 14px 16px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+        .celeb-name { font-weight: 700; font-size: 1rem; color: #2c1654; }
+        .celeb-year { font-size: 0.82rem; color: #888; }
+        .celeb-desc { font-size: 0.85rem; color: #555; line-height: 1.45; flex: 1; }
+        .celeb-age { font-size: 0.8rem; font-weight: 600; color: #5b2d8e; margin-top: 4px; }
+        .celeb-link { font-size: 0.8rem; color: #5b2d8e; text-decoration: none; margin-top: 6px; display: inline-block; }
+        .celeb-link:hover { text-decoration: underline; }
+        #status { font-size: 0.95rem; color: #555; padding: 24px 0; text-align: center; min-height: 40px; }
+        #status.error { color: #c0392b; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #ddd; border-top-color: #5b2d8e; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .source { font-size: 0.78rem; color: #aaa; text-align: right; margin-top: 8px; }
+        .empty-day { color: #aaa; font-size: 0.9rem; padding: 8px 0; }
+        .filter-bar { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 16px 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .filter-bar label { font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #666; }
+        .filter-bar input { padding: 7px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.92rem; width: 200px; }
+        .filter-bar input:focus { outline: none; border-color: #5b2d8e; }
+        .count-pill { background: #f0e8fb; color: #5b2d8e; border-radius: 12px; padding: 2px 10px; font-size: 0.78rem; font-weight: 600; }
+        .breadcrumb { background: #4a2275; padding: 8px 40px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; }
+        .breadcrumb a { color: rgba(255,255,255,0.65); text-decoration: none; }
+        .breadcrumb a:hover { color: white; text-decoration: underline; }
+        .breadcrumb .sep { color: rgba(255,255,255,0.35); }
+        .breadcrumb .current { color: rgba(255,255,255,0.9); }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Celebrity Birthdays This Week</h1>
+    <p>Famous people celebrating birthdays today and in the coming 7 days · Source: Wikipedia</p>
+</header>
+<nav class="breadcrumb">
+    <a href="/">Home</a>
+    <span class="sep">›</span>
+    <span class="current">Celebrity Birthdays</span>
+</nav>
+
+<div class="container">
+    <div class="filter-bar">
+        <label>Filter by name or description</label>
+        <input type="text" id="filterInput" placeholder="e.g. actor, musician, athlete…" oninput="applyFilter()" />
+    </div>
+
+    <div id="status"><span class="spinner"></span> Loading celebrity birthdays…</div>
+    <div id="content"></div>
+    <p class="source">Data sourced from the Wikipedia REST API (Wikimedia Foundation). Birthdates shown are the calendar day; age calculation based on birth year.</p>
+</div>
+
+<script>
+    const DAYS_AHEAD = 7;
+    let allDayData = []; // [{date, label, isToday, celebs[]}]
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function dateLabel(d) {
+        return d.toLocaleDateString('en-AU', { weekday: 'long', month: 'long', day: 'numeric' });
+    }
+
+    function age(birthYear, refDate) {
+        const thisYear = refDate.getFullYear();
+        return thisYear - birthYear;
+    }
+
+    async function fetchBirthdays(month, day) {
+        const url = `https://en.wikipedia.org/api/rest_v1/feed/onthisday/births/${pad(month)}/${pad(day)}`;
+        const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        return data.births || [];
+    }
+
+    function buildCard(celeb, refDate) {
+        const name = celeb.text || 'Unknown';
+        const desc = celeb.pages && celeb.pages[0] ? celeb.pages[0].extract : '';
+        const thumb = celeb.pages && celeb.pages[0] && celeb.pages[0].thumbnail
+            ? celeb.pages[0].thumbnail.source : null;
+        const pageUrl = celeb.pages && celeb.pages[0]
+            ? `https://en.wikipedia.org/wiki/${encodeURIComponent(celeb.pages[0].title)}` : null;
+        const birthYear = celeb.year;
+        const ageNow = birthYear ? age(birthYear, refDate) : null;
+
+        const thumbHtml = thumb
+            ? `<img class="celeb-thumb" src="${thumb}" alt="${name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+              + `<div class="celeb-thumb-placeholder" style="display:none">🎂</div>`
+            : `<div class="celeb-thumb-placeholder">🎂</div>`;
+
+        return `
+        <div class="celeb-card">
+            ${thumbHtml}
+            <div class="celeb-body">
+                <div class="celeb-name">${escHtml(name)}</div>
+                ${birthYear ? `<div class="celeb-year">Born ${birthYear}${ageNow !== null ? ` · Turns ${ageNow}` : ''}</div>` : ''}
+                ${desc ? `<div class="celeb-desc">${escHtml(truncate(desc, 120))}</div>` : ''}
+                ${pageUrl ? `<a class="celeb-link" href="${pageUrl}" target="_blank" rel="noopener">Wikipedia →</a>` : ''}
+            </div>
+        </div>`;
+    }
+
+    function truncate(str, n) {
+        if (!str) return '';
+        return str.length > n ? str.slice(0, n).trimEnd() + '…' : str;
+    }
+
+    function escHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function applyFilter() {
+        const q = document.getElementById('filterInput').value.trim().toLowerCase();
+        renderContent(q);
+    }
+
+    function renderContent(filter) {
+        const content = document.getElementById('content');
+        if (!allDayData.length) { content.innerHTML = ''; return; }
+
+        content.innerHTML = allDayData.map(dayObj => {
+            let celebs = dayObj.celebs;
+            if (filter) {
+                celebs = celebs.filter(c => {
+                    const name = (c.text || '').toLowerCase();
+                    const desc = (c.pages && c.pages[0] ? c.pages[0].extract : '').toLowerCase();
+                    return name.includes(filter) || desc.includes(filter);
+                });
+            }
+
+            const countHtml = `<span class="count-pill">${celebs.length}</span>`;
+            const todayClass = dayObj.isToday ? 'today' : '';
+            const todayLabel = dayObj.isToday ? 'TODAY' : dayObj.shortDate;
+
+            let bodyHtml;
+            if (celebs.length === 0) {
+                bodyHtml = `<p class="empty-day">No matches for this day.</p>`;
+            } else {
+                bodyHtml = `<div class="cards-grid">${celebs.map(c => buildCard(c, dayObj.date)).join('')}</div>`;
+            }
+
+            return `
+            <div class="day-section">
+                <div class="day-header">
+                    <span class="day-badge ${todayClass}">${todayLabel}</span>
+                    <span class="day-label">${dayObj.label}</span>
+                    ${countHtml}
+                </div>
+                ${bodyHtml}
+            </div>`;
+        }).join('');
+    }
+
+    async function load() {
+        const statusEl = document.getElementById('status');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const promises = [];
+        for (let i = 0; i < DAYS_AHEAD; i++) {
+            const d = new Date(today);
+            d.setDate(today.getDate() + i);
+            promises.push(
+                fetchBirthdays(d.getMonth() + 1, d.getDate())
+                    .then(celebs => ({ date: d, celebs }))
+                    .catch(() => ({ date: d, celebs: [] }))
+            );
+        }
+
+        const results = await Promise.all(promises);
+
+        allDayData = results.map((r, i) => {
+            const d = r.date;
+            return {
+                date: d,
+                isToday: i === 0,
+                label: dateLabel(d),
+                shortDate: `${d.getDate()} ${d.toLocaleString('en-AU', { month: 'short' })}`,
+                celebs: r.celebs,
+            };
+        });
+
+        statusEl.textContent = '';
+        statusEl.className = '';
+        renderContent('');
+    }
+
+    load().catch(err => {
+        const statusEl = document.getElementById('status');
+        statusEl.textContent = 'Failed to load birthdays: ' + err.message;
+        statusEl.className = 'error';
+    });
+</script>
+</body>
+</html>

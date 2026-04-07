@@ -13,11 +13,6 @@ public class HelloWorldApplication {
         SpringApplication.run(HelloWorldApplication.class, args);
     }
 
-    @GetMapping("/")
-    public String hello() {
-        return "Hello, World!";
-    }
-
     @GetMapping("/health")
     public String health() {
         return "OK";

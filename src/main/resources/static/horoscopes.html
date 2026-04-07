@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Horoscopes</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d0d1a; color: #e8e0f0; min-height: 100vh; }
+        header { background: linear-gradient(135deg, #1a0533, #2d1052); padding: 28px 40px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+        header h1 { font-size: 1.8rem; font-weight: 700; background: linear-gradient(90deg, #c084fc, #f0abfc, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        header p { font-size: 0.9rem; color: rgba(255,255,255,0.5); margin-top: 5px; }
+        .breadcrumb { background: #150828; padding: 8px 40px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .breadcrumb a { color: rgba(255,255,255,0.45); text-decoration: none; }
+        .breadcrumb a:hover { color: rgba(255,255,255,0.85); text-decoration: underline; }
+        .breadcrumb .sep { color: rgba(255,255,255,0.2); }
+        .breadcrumb .current { color: rgba(255,255,255,0.75); }
+        .container { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
+
+        /* Sign selector */
+        .sign-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 32px; }
+        .sign-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            padding: 10px 14px; border-radius: 12px; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04);
+            color: rgba(255,255,255,0.6); font-size: 0.75rem; font-weight: 600;
+            transition: all 0.18s; min-width: 72px;
+        }
+        .sign-btn .glyph { font-size: 1.6rem; }
+        .sign-btn:hover { background: rgba(192,132,252,0.15); border-color: rgba(192,132,252,0.4); color: #e0c8ff; }
+        .sign-btn.active { background: rgba(192,132,252,0.25); border-color: #c084fc; color: #e0c8ff; box-shadow: 0 0 16px rgba(192,132,252,0.2); }
+
+        /* Date selector */
+        .date-bar { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 32px; }
+        .date-bar button { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.7); border-radius: 8px; padding: 7px 18px; cursor: pointer; font-size: 0.88rem; }
+        .date-bar button:hover { background: rgba(192,132,252,0.2); border-color: #c084fc; }
+        .date-bar .date-label { font-size: 0.95rem; font-weight: 600; color: #d8b4fe; min-width: 140px; text-align: center; }
+
+        /* Horoscope card */
+        .reading-card {
+            background: linear-gradient(135deg, rgba(45,16,82,0.9), rgba(20,8,40,0.95));
+            border: 1px solid rgba(192,132,252,0.25);
+            border-radius: 20px;
+            padding: 36px 40px;
+            max-width: 760px;
+            margin: 0 auto 40px;
+            box-shadow: 0 8px 48px rgba(120,40,200,0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .reading-card::before {
+            content: '';
+            position: absolute; top: -40px; right: -40px;
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(192,132,252,0.12), transparent 70%);
+            pointer-events: none;
+        }
+        .sign-hero { display: flex; align-items: center; gap: 20px; margin-bottom: 28px; }
+        .sign-glyph-big { font-size: 4rem; line-height: 1; }
+        .sign-info .sign-name { font-size: 1.8rem; font-weight: 800; color: #e0c8ff; }
+        .sign-info .sign-dates { font-size: 0.85rem; color: rgba(255,255,255,0.45); margin-top: 4px; }
+        .sign-info .sign-element { display: inline-block; padding: 2px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; margin-top: 8px; }
+        .element-fire  { background: rgba(239,68,68,0.2);  color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        .element-earth { background: rgba(34,197,94,0.15); color: #86efac; border: 1px solid rgba(34,197,94,0.25); }
+        .element-air   { background: rgba(96,165,250,0.15);color: #93c5fd; border: 1px solid rgba(96,165,250,0.25); }
+        .element-water { background: rgba(99,102,241,0.2); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3); }
+
+        .divider { height: 1px; background: rgba(192,132,252,0.15); margin: 24px 0; }
+
+        .reading-text { font-size: 1.05rem; line-height: 1.85; color: rgba(255,255,255,0.85); font-style: italic; }
+
+        .aspects { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin-top: 28px; }
+        .aspect-box { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px 16px; }
+        .aspect-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.35); margin-bottom: 6px; }
+        .aspect-value { font-size: 0.95rem; font-weight: 600; color: #d8b4fe; }
+        .stars { color: #f59e0b; letter-spacing: 2px; }
+
+        /* All signs grid */
+        .all-signs-heading { text-align: center; font-size: 0.85rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.1em; margin: 40px 0 20px; }
+        .signs-overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+        .mini-card {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 18px 20px; cursor: pointer;
+            transition: all 0.18s;
+        }
+        .mini-card:hover { background: rgba(192,132,252,0.1); border-color: rgba(192,132,252,0.3); transform: translateY(-2px); }
+        .mini-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .mini-glyph { font-size: 1.8rem; }
+        .mini-name { font-weight: 700; font-size: 0.97rem; color: #e0c8ff; }
+        .mini-dates { font-size: 0.75rem; color: rgba(255,255,255,0.4); }
+        .mini-text { font-size: 0.82rem; line-height: 1.6; color: rgba(255,255,255,0.6); font-style: italic; }
+        .mini-stars { font-size: 0.8rem; margin-top: 8px; }
+
+        #status { text-align: center; padding: 30px; color: rgba(255,255,255,0.4); font-size: 0.92rem; }
+        .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.15); border-top-color: #c084fc; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none; }
+
+        footer { text-align: center; padding: 24px; font-size: 0.75rem; color: rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body>
+<header>
+    <h1>✨ Daily Horoscopes</h1>
+    <p>Celestial readings for all twelve signs</p>
+</header>
+<nav class="breadcrumb">
+    <a href="/">Home</a>
+    <span class="sep">›</span>
+    <span class="current">Daily Horoscopes</span>
+</nav>
+
+<div class="container">
+    <!-- Date navigation -->
+    <div class="date-bar">
+        <button onclick="shiftDay(-1)">← Yesterday</button>
+        <span class="date-label" id="dateLabel">—</span>
+        <button id="tomorrowBtn" onclick="shiftDay(1)">Tomorrow →</button>
+    </div>
+
+    <!-- Sign selector -->
+    <div class="sign-bar" id="signBar"></div>
+
+    <!-- Status / loading -->
+    <div id="status" class="hidden"></div>
+
+    <!-- Featured reading -->
+    <div id="featuredCard" class="hidden"></div>
+
+    <!-- All signs overview -->
+    <div id="allSignsSection" class="hidden">
+        <div class="all-signs-heading">All Signs at a Glance</div>
+        <div class="signs-overview" id="overviewGrid"></div>
+    </div>
+</div>
+
+<footer>Horoscopes are for entertainment purposes only.</footer>
+
+<script>
+// ─── Sign data ────────────────────────────────────────────────────────────────
+const SIGNS = [
+    { key: 'aries',       name: 'Aries',       glyph: '♈', dates: 'Mar 21 – Apr 19', element: 'fire',  ruling: 'Mars',    quality: 'Cardinal' },
+    { key: 'taurus',      name: 'Taurus',      glyph: '♉', dates: 'Apr 20 – May 20', element: 'earth', ruling: 'Venus',   quality: 'Fixed' },
+    { key: 'gemini',      name: 'Gemini',       glyph: '♊', dates: 'May 21 – Jun 20', element: 'air',   ruling: 'Mercury', quality: 'Mutable' },
+    { key: 'cancer',      name: 'Cancer',       glyph: '♋', dates: 'Jun 21 – Jul 22', element: 'water', ruling: 'Moon',    quality: 'Cardinal' },
+    { key: 'leo',         name: 'Leo',          glyph: '♌', dates: 'Jul 23 – Aug 22', element: 'fire',  ruling: 'Sun',     quality: 'Fixed' },
+    { key: 'virgo',       name: 'Virgo',        glyph: '♍', dates: 'Aug 23 – Sep 22', element: 'earth', ruling: 'Mercury', quality: 'Mutable' },
+    { key: 'libra',       name: 'Libra',        glyph: '♎', dates: 'Sep 23 – Oct 22', element: 'air',   ruling: 'Venus',   quality: 'Cardinal' },
+    { key: 'scorpio',     name: 'Scorpio',      glyph: '♏', dates: 'Oct 23 – Nov 21', element: 'water', ruling: 'Pluto',   quality: 'Fixed' },
+    { key: 'sagittarius', name: 'Sagittarius',  glyph: '♐', dates: 'Nov 22 – Dec 21', element: 'fire',  ruling: 'Jupiter', quality: 'Mutable' },
+    { key: 'capricorn',   name: 'Capricorn',    glyph: '♑', dates: 'Dec 22 – Jan 19', element: 'earth', ruling: 'Saturn',  quality: 'Cardinal' },
+    { key: 'aquarius',    name: 'Aquarius',     glyph: '♒', dates: 'Jan 20 – Feb 18', element: 'air',   ruling: 'Uranus',  quality: 'Fixed' },
+    { key: 'pisces',      name: 'Pisces',       glyph: '♓', dates: 'Feb 19 – Mar 20', element: 'water', ruling: 'Neptune', quality: 'Mutable' },
+];
+
+// ─── Deterministic reading generator ─────────────────────────────────────────
+// Produces consistent readings for a given sign + date combination so the
+// same person sees the same reading all day, but it changes daily.
+
+const LOVE = [
+    'Venus blesses your connections — reach out to someone meaningful.',
+    'A heartfelt conversation deepens an important bond.',
+    'Romance simmers quietly beneath the surface; be open to signals.',
+    'Partnerships flourish when you lead with honesty today.',
+    'A surprise encounter carries unexpected warmth.',
+    'Give space to those you love and watch closeness grow.',
+    'Your charm is magnetic right now — use it wisely.',
+    'Old flames or familiar faces may reappear on your path.',
+];
+const CAREER = [
+    'Your ideas carry weight — speak up in discussions.',
+    'A methodical approach wins the day over rushing ahead.',
+    'Collaboration opens a door you could not unlock alone.',
+    'A small task completed thoroughly impresses the right people.',
+    'Creative thinking breaks a deadlock that has lingered too long.',
+    'Recognition may be quiet today, but it is coming.',
+    'Focus on one priority rather than spreading yourself thin.',
+    'A mentor figure has valuable perspective — seek them out.',
+];
+const HEALTH = [
+    'Rest is productive. Honour your body\'s need for recovery.',
+    'A short walk or stretch can reset your energy entirely.',
+    'Hydration and mindful breathing make a surprising difference.',
+    'Your mind is sharp when your routine is steady — keep it.',
+    'Notice what you consume: food, media, and conversation alike.',
+    'A moment of stillness in the morning sets a calmer tone.',
+    'Movement you enjoy is worth ten sessions you dread.',
+    'Your energy levels rise when you protect your sleep.',
+];
+const GENERAL = [
+    [
+        'The stars align in your favour today, urging you to embrace new beginnings with open arms. Trust your instincts and take that first step you have been contemplating.',
+        'A quiet but powerful shift occurs in your inner world. Reflect on what you truly want before committing energy to external demands.',
+        'Unexpected opportunities arrive from an unfamiliar direction. Stay curious and resist the urge to dismiss what seems unusual at first glance.',
+        'The cosmos calls you to balance action with patience. Progress is happening even when it is invisible — trust the process.',
+        'A conversation or message today carries more significance than it appears. Pay attention to what is said between the lines.',
+        'Creative energy peaks around midday. Channel it into something that matters before the afternoon brings more practical demands.',
+        'You stand at a crossroads of habit and change. The stars favour those who choose deliberately rather than by default.',
+        'Generosity — given or received — sets the tone for the coming days. Lead with an open hand and an open heart.',
+    ],
+    [
+        'Saturn\'s steady influence grounds your ambitions. This is a day to build, not to dream — tangible effort yields real reward.',
+        'The lunar energy heightens your intuition. Pay close attention to what your gut tells you, especially in matters of trust.',
+        'Mercury sharpens your communication. Words land precisely today — use this gift to clarify something long left unspoken.',
+        'Jupiter expands your horizons with a reminder that abundance is a mindset before it becomes a reality.',
+        'Mars lends you courage today. Take on the challenge you have been postponing; momentum is easier to find than you expect.',
+        'Neptune softens the edges of today\'s demands. Creative and spiritual pursuits bring deeper satisfaction than practical achievements.',
+        'Venus illuminates your sense of beauty and worth. You deserve the kindness you so freely extend to others.',
+        'Uranus sparks an insight that reframes a long-standing problem. Welcome the disruption — it carries a gift.',
+    ],
+];
+
+function seededRandom(seed) {
+    // Simple deterministic RNG from an integer seed
+    let s = seed;
+    return () => {
+        s = (s * 1664525 + 1013904223) & 0xffffffff;
+        return (s >>> 0) / 0xffffffff;
+    };
+}
+
+function dateToInt(date) {
+    return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+}
+
+function signIndex(key) { return SIGNS.findIndex(s => s.key === key); }
+
+function generateReading(sign, date) {
+    const base = dateToInt(date);
+    const si = signIndex(sign.key);
+    const rng = seededRandom(base * 31 + si * 997);
+    const pick = (arr) => arr[Math.floor(rng() * arr.length)];
+
+    const generalPool = pick(GENERAL);
+    const general = pick(generalPool);
+    const love    = pick(LOVE);
+    const career  = pick(CAREER);
+    const health  = pick(HEALTH);
+
+    const luckyNum  = Math.floor(rng() * 99) + 1;
+    const luckyCol  = pick(['Indigo','Crimson','Gold','Emerald','Violet','Amber','Cobalt','Rose','Silver','Teal']);
+    const overallPts = Math.floor(rng() * 3) + 3; // 3–5
+    const lovePts    = Math.floor(rng() * 3) + 3;
+    const careerPts  = Math.floor(rng() * 3) + 3;
+
+    return { general, love, career, health, luckyNum, luckyCol, overallPts, lovePts, careerPts };
+}
+
+function stars(n, max = 5) {
+    return '★'.repeat(n) + '☆'.repeat(max - n);
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let currentDate = new Date();
+currentDate.setHours(0, 0, 0, 0);
+let selectedSign = SIGNS[0];
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function updateDateLabel() {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    let label;
+    if (currentDate.getTime() === today.getTime()) label = 'Today';
+    else if (currentDate.getTime() === tomorrow.getTime()) label = 'Tomorrow';
+    else label = currentDate.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'long' });
+    document.getElementById('dateLabel').textContent = label;
+
+    const maxDate = new Date(today); maxDate.setDate(today.getDate() + 6);
+    document.getElementById('tomorrowBtn').disabled = currentDate >= maxDate;
+}
+
+function shiftDay(d) {
+    const next = new Date(currentDate);
+    next.setDate(next.getDate() + d);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const past = new Date(today); past.setDate(today.getDate() - 30);
+    const future = new Date(today); future.setDate(today.getDate() + 6);
+    if (next < past || next > future) return;
+    currentDate = next;
+    render();
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function buildSignBar() {
+    const bar = document.getElementById('signBar');
+    bar.innerHTML = SIGNS.map(s => `
+        <div class="sign-btn ${s.key === selectedSign.key ? 'active' : ''}" onclick="selectSign('${s.key}')">
+            <span class="glyph">${s.glyph}</span>
+            <span>${s.name}</span>
+        </div>`).join('');
+}
+
+function selectSign(key) {
+    selectedSign = SIGNS.find(s => s.key === key);
+    buildSignBar();
+    renderFeatured();
+}
+
+function renderFeatured() {
+    const r = generateReading(selectedSign, currentDate);
+    const s = selectedSign;
+    const card = document.getElementById('featuredCard');
+    card.innerHTML = `
+    <div class="reading-card">
+        <div class="sign-hero">
+            <div class="sign-glyph-big">${s.glyph}</div>
+            <div class="sign-info">
+                <div class="sign-name">${s.name}</div>
+                <div class="sign-dates">${s.dates}</div>
+                <span class="sign-element element-${s.element}">${s.element.charAt(0).toUpperCase()+s.element.slice(1)} · ${s.ruling} · ${s.quality}</span>
+            </div>
+        </div>
+        <div class="reading-text">${r.general}</div>
+        <div class="divider"></div>
+        <div class="aspects">
+            <div class="aspect-box">
+                <div class="aspect-label">Overall</div>
+                <div class="aspect-value stars">${stars(r.overallPts)}</div>
+            </div>
+            <div class="aspect-box">
+                <div class="aspect-label">Love & Relationships</div>
+                <div class="aspect-value stars">${stars(r.lovePts)}</div>
+            </div>
+            <div class="aspect-box">
+                <div class="aspect-label">Career & Finance</div>
+                <div class="aspect-value stars">${stars(r.careerPts)}</div>
+            </div>
+            <div class="aspect-box">
+                <div class="aspect-label">Lucky Number</div>
+                <div class="aspect-value">${r.luckyNum}</div>
+            </div>
+            <div class="aspect-box">
+                <div class="aspect-label">Lucky Colour</div>
+                <div class="aspect-value">${r.luckyCol}</div>
+            </div>
+        </div>
+        <div class="divider"></div>
+        <div class="aspects">
+            <div class="aspect-box" style="grid-column: span 2">
+                <div class="aspect-label">❤️ Love</div>
+                <div class="aspect-value" style="font-size:0.88rem;font-weight:400;color:rgba(255,255,255,0.7);margin-top:4px">${r.love}</div>
+            </div>
+            <div class="aspect-box" style="grid-column: span 2">
+                <div class="aspect-label">💼 Career</div>
+                <div class="aspect-value" style="font-size:0.88rem;font-weight:400;color:rgba(255,255,255,0.7);margin-top:4px">${r.career}</div>
+            </div>
+            <div class="aspect-box" style="grid-column: span 2">
+                <div class="aspect-label">🌿 Health</div>
+                <div class="aspect-value" style="font-size:0.88rem;font-weight:400;color:rgba(255,255,255,0.7);margin-top:4px">${r.health}</div>
+            </div>
+        </div>
+    </div>`;
+    card.classList.remove('hidden');
+}
+
+function renderOverview() {
+    const grid = document.getElementById('overviewGrid');
+    grid.innerHTML = SIGNS.map(s => {
+        const r = generateReading(s, currentDate);
+        return `
+        <div class="mini-card" onclick="selectSign('${s.key}')">
+            <div class="mini-header">
+                <span class="mini-glyph">${s.glyph}</span>
+                <div>
+                    <div class="mini-name">${s.name}</div>
+                    <div class="mini-dates">${s.dates}</div>
+                </div>
+            </div>
+            <div class="mini-text">${r.general.slice(0, 100).trimEnd()}…</div>
+            <div class="mini-stars stars">${stars(r.overallPts)}</div>
+        </div>`;
+    }).join('');
+    document.getElementById('allSignsSection').classList.remove('hidden');
+}
+
+function render() {
+    updateDateLabel();
+    buildSignBar();
+    renderFeatured();
+    renderOverview();
+}
+
+render();
+</script>
+</body>
+</html>

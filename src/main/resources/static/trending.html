@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trending on Wikipedia</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
+        header { background: #1a6e3c; color: white; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+        header h1 { font-size: 1.6rem; font-weight: 600; }
+        header p { font-size: 0.9rem; opacity: 0.75; margin-top: 4px; }
+        .date-nav { display: flex; align-items: center; gap: 10px; }
+        .date-nav button { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 0.9rem; }
+        .date-nav button:hover { background: rgba(255,255,255,0.35); }
+        .date-nav span { font-size: 0.95rem; font-weight: 600; white-space: nowrap; }
+        .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+        .toolbar { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 16px 24px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+        .toolbar label { font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #666; }
+        .toolbar input { padding: 7px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.92rem; width: 220px; }
+        .toolbar input:focus { outline: none; border-color: #1a6e3c; }
+        .toolbar select { padding: 7px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.92rem; }
+        .toolbar select:focus { outline: none; border-color: #1a6e3c; }
+        .stat-bar { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+        .stat-box { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 14px 22px; flex: 1; min-width: 140px; }
+        .stat-box .val { font-size: 1.7rem; font-weight: 700; color: #1a6e3c; }
+        .stat-box .lbl { font-size: 0.8rem; color: #777; margin-top: 2px; }
+        #status { font-size: 0.95rem; color: #555; padding: 24px 0; text-align: center; min-height: 40px; }
+        #status.error { color: #c0392b; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #ddd; border-top-color: #1a6e3c; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .article-list { display: flex; flex-direction: column; gap: 12px; }
+        .article-card {
+            background: white; border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            display: flex; align-items: stretch; overflow: hidden;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .article-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+        .rank-col {
+            min-width: 60px; background: #1a6e3c; color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; font-weight: 800; flex-shrink: 0;
+        }
+        .rank-col.top3 { background: #e67e22; }
+        .thumb-col { width: 110px; flex-shrink: 0; overflow: hidden; }
+        .thumb-col img { width: 110px; height: 100%; object-fit: cover; display: block; }
+        .thumb-col .no-thumb { width: 110px; height: 100%; min-height: 90px; background: linear-gradient(135deg, #d4edda, #a8d5b5); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; }
+        .article-body { padding: 14px 18px; flex: 1; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+        .article-title { font-weight: 700; font-size: 1.05rem; color: #1a3c2e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .article-desc { font-size: 0.82rem; color: #888; }
+        .article-extract { font-size: 0.88rem; color: #555; line-height: 1.5; flex: 1; }
+        .article-meta { display: flex; align-items: center; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
+        .views-pill { background: #e6f4ec; color: #1a6e3c; border-radius: 12px; padding: 3px 12px; font-size: 0.8rem; font-weight: 700; }
+        .article-link { font-size: 0.8rem; color: #1a6e3c; text-decoration: none; }
+        .article-link:hover { text-decoration: underline; }
+        .source { font-size: 0.78rem; color: #aaa; text-align: right; margin-top: 16px; }
+        .hidden { display: none; }
+        .load-more { display: block; margin: 24px auto 0; padding: 10px 32px; background: #1a6e3c; color: white; border: none; border-radius: 6px; font-size: 0.95rem; cursor: pointer; }
+        .load-more:hover { background: #155a30; }
+        .load-more:disabled { opacity: 0.5; cursor: default; }
+        .breadcrumb { background: #155a30; padding: 8px 40px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; }
+        .breadcrumb a { color: rgba(255,255,255,0.65); text-decoration: none; }
+        .breadcrumb a:hover { color: white; text-decoration: underline; }
+        .breadcrumb .sep { color: rgba(255,255,255,0.35); }
+        .breadcrumb .current { color: rgba(255,255,255,0.9); }
+    </style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>Trending on Wikipedia</h1>
+        <p>Most-read English Wikipedia articles by day</p>
+    </div>
+    <div class="date-nav">
+        <button onclick="shiftDay(-1)">← Earlier</button>
+        <span id="dateLabel">—</span>
+        <button id="laterBtn" onclick="shiftDay(1)">Later →</button>
+    </div>
+</header>
+<nav class="breadcrumb">
+    <a href="/">Home</a>
+    <span class="sep">›</span>
+    <span class="current">Trending on Wikipedia</span>
+</nav>
+
+<div class="container">
+    <div class="toolbar">
+        <label>Filter</label>
+        <input type="text" id="filterInput" placeholder="Search titles…" oninput="applyFilter()" />
+        <label>Show</label>
+        <select id="limitSelect" onchange="applyFilter()">
+            <option value="25">Top 25</option>
+            <option value="50" selected>Top 50</option>
+            <option value="100">Top 100</option>
+            <option value="200">Top 200</option>
+        </select>
+    </div>
+
+    <div class="stat-bar hidden" id="statBar">
+        <div class="stat-box"><div class="val" id="statTotal">—</div><div class="lbl">Articles shown</div></div>
+        <div class="stat-box"><div class="val" id="statViews">—</div><div class="lbl">Total views (shown)</div></div>
+        <div class="stat-box"><div class="val" id="statTop">—</div><div class="lbl">#1 article views</div></div>
+    </div>
+
+    <div id="status"><span class="spinner"></span> Loading trending articles…</div>
+    <div class="article-list" id="articleList"></div>
+    <p class="source hidden" id="sourceNote">Data from Wikimedia Pageviews API & Wikipedia REST API. Bots and internal Wikipedia pages are excluded.</p>
+</div>
+
+<script>
+    // Pages to skip — Wikipedia navigation/internal pages
+    const SKIP = new Set([
+        'Main_Page', 'Special:Search', 'Wikipedia:Featured_pictures',
+        'Special:Random', 'Portal:Current_events', 'Wikipedia:Contents',
+        'Help:Contents', 'Portal:Arts', 'Portal:Biography',
+        'Portal:Geography', 'Portal:History', 'Portal:Mathematics',
+        'Portal:Science', 'Portal:Society', 'Portal:Technology',
+        'Special:Statistics', 'Wikipedia:About',
+    ]);
+
+    let currentDate = new Date();
+    currentDate.setDate(currentDate.getDate() - 1); // yesterday — today's data not yet available
+    let allArticles = []; // raw ranked list from pageviews API
+    let summaryCache = {};
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function fmtNum(n) { return n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e3 ? (n/1e3).toFixed(1)+'K' : String(n); }
+
+    function updateDateLabel() {
+        const d = currentDate;
+        const today = new Date(); today.setDate(today.getDate() - 1);
+        const isYesterday = d.toDateString() === today.toDateString();
+        document.getElementById('dateLabel').textContent = d.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+            + (isYesterday ? ' (yesterday)' : '');
+        document.getElementById('laterBtn').disabled = isYesterday;
+    }
+
+    function shiftDay(delta) {
+        const d = new Date(currentDate);
+        d.setDate(d.getDate() + delta);
+        const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+        if (d > yesterday) return;
+        currentDate = d;
+        loadTrending();
+    }
+
+    async function fetchPageviews(date) {
+        const y = date.getFullYear();
+        const m = pad(date.getMonth() + 1);
+        const dd = pad(date.getDate());
+        const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/top/en.wikipedia/all-access/${y}/${m}/${dd}`;
+        const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!resp.ok) throw new Error(`Pageviews API: HTTP ${resp.status}`);
+        const data = await resp.json();
+        return data.items[0].articles;
+    }
+
+    async function fetchSummary(title) {
+        if (summaryCache[title]) return summaryCache[title];
+        try {
+            const resp = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!resp.ok) return null;
+            const s = await resp.json();
+            summaryCache[title] = s;
+            return s;
+        } catch { return null; }
+    }
+
+    async function loadTrending() {
+        updateDateLabel();
+        document.getElementById('status').innerHTML = '<span class="spinner"></span> Fetching trending articles…';
+        document.getElementById('status').className = '';
+        document.getElementById('articleList').innerHTML = '';
+        document.getElementById('statBar').classList.add('hidden');
+        document.getElementById('sourceNote').classList.add('hidden');
+
+        try {
+            const raw = await fetchPageviews(currentDate);
+            // filter internal pages
+            allArticles = raw.filter(a => !SKIP.has(a.article) && !a.article.startsWith('Special:') && !a.article.startsWith('Wikipedia:') && !a.article.startsWith('Help:') && !a.article.startsWith('Portal:'));
+            document.getElementById('status').textContent = '';
+            applyFilter();
+        } catch (e) {
+            document.getElementById('status').textContent = 'Failed to load: ' + e.message;
+            document.getElementById('status').className = 'error';
+        }
+    }
+
+    function applyFilter() {
+        const q = document.getElementById('filterInput').value.trim().toLowerCase();
+        const limit = parseInt(document.getElementById('limitSelect').value);
+
+        let filtered = allArticles;
+        if (q) filtered = filtered.filter(a => a.article.replace(/_/g, ' ').toLowerCase().includes(q));
+
+        const slice = filtered.slice(0, limit);
+        renderArticles(slice, filtered.length);
+    }
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function truncate(s, n) { return s && s.length > n ? s.slice(0, n).trimEnd() + '…' : (s || ''); }
+
+    function articleHtml(a, rank, idx, summary) {
+        const title = a.article.replace(/_/g, ' ');
+        const views = fmtNum(a.views);
+        const wikiUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(a.article)}`;
+        const isTop3 = rank <= 3;
+
+        const thumb = summary && summary.thumbnail
+            ? `<img src="${summary.thumbnail.source}" alt="" loading="lazy" onerror="this.parentElement.innerHTML='<div class=\'no-thumb\'>📰</div>'">`
+            : `<div class="no-thumb">📰</div>`;
+
+        const desc = summary ? escHtml(summary.description || '') : '';
+        const extract = summary ? escHtml(truncate(summary.extract, 180)) : '';
+
+        return `
+        <div class="article-card" data-idx="${idx}">
+            <div class="rank-col ${isTop3 ? 'top3' : ''}">#${rank}</div>
+            <div class="thumb-col">${thumb}</div>
+            <div class="article-body">
+                <div class="article-title">${escHtml(title)}</div>
+                ${desc ? `<div class="article-desc">${desc}</div>` : ''}
+                ${extract ? `<div class="article-extract">${extract}</div>` : ''}
+                <div class="article-meta">
+                    <span class="views-pill">👁 ${views} views</span>
+                    <a class="article-link" href="${wikiUrl}" target="_blank" rel="noopener">Read on Wikipedia →</a>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    async function renderArticles(slice, totalMatches) {
+        const list = document.getElementById('articleList');
+
+        // Render placeholders immediately — rank is post-filter position (1-based)
+        list.innerHTML = slice.map((a, i) => articleHtml(a, i + 1, i, null)).join('');
+
+        // Update stats
+        const totalViews = slice.reduce((s, a) => s + a.views, 0);
+        document.getElementById('statTotal').textContent = totalMatches.toLocaleString();
+        document.getElementById('statViews').textContent = fmtNum(totalViews);
+        document.getElementById('statTop').textContent = slice.length ? fmtNum(slice[0].views) : '—';
+        document.getElementById('statBar').classList.remove('hidden');
+        document.getElementById('sourceNote').classList.remove('hidden');
+
+        // Fetch summaries in parallel batches and patch cards in as they arrive
+        const BATCH = 10;
+        for (let i = 0; i < slice.length; i += BATCH) {
+            const batch = slice.slice(i, i + BATCH);
+            await Promise.all(batch.map(async (a, bi) => {
+                const idx = i + bi;
+                const summary = await fetchSummary(a.article);
+                if (!summary) return;
+                const card = list.querySelector(`[data-idx="${idx}"]`);
+                if (card) card.outerHTML = articleHtml(a, idx + 1, idx, summary);
+            }));
+        }
+    }
+
+    loadTrending();
+</script>
+</body>
+</html>

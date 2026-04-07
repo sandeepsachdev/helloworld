@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sydney Suburbs</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
+        header { background: linear-gradient(135deg, #c05e00, #e07820); color: white; padding: 20px 40px; }
+        header h1 { font-size: 1.6rem; font-weight: 700; }
+        header p  { font-size: 0.9rem; opacity: 0.8; margin-top: 4px; }
+        .breadcrumb { background: #a34f00; padding: 8px 40px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; color: white; }
+        .breadcrumb a { color: rgba(255,255,255,0.65); text-decoration: none; }
+        .breadcrumb a:hover { color: white; text-decoration: underline; }
+        .breadcrumb .sep { color: rgba(255,255,255,0.35); }
+        .breadcrumb .current { color: rgba(255,255,255,0.9); }
+        .container { max-width: 1200px; margin: 24px auto; padding: 0 20px; }
+
+        /* Controls */
+        .controls { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 18px 22px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+        .field { display: flex; flex-direction: column; gap: 5px; }
+        .field label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #888; }
+        .field input, .field select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.9rem; }
+        .field input:focus, .field select:focus { outline: none; border-color: #c05e00; }
+        .field input { width: 200px; }
+
+        /* Region tabs */
+        .region-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+        .rtab { padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 0.82rem; font-weight: 600; border: 1px solid #ddd; background: white; color: #666; transition: all 0.15s; }
+        .rtab:hover { border-color: #c05e00; color: #c05e00; }
+        .rtab.active { background: #c05e00; color: white; border-color: #c05e00; }
+
+        /* Stats bar */
+        .stat-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+        .stat-box { background: white; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.07); padding: 12px 18px; flex: 1; min-width: 120px; }
+        .stat-box .val { font-size: 1.5rem; font-weight: 700; color: #c05e00; }
+        .stat-box .lbl { font-size: 0.75rem; color: #888; margin-top: 2px; }
+
+        /* View toggle */
+        .view-bar { display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-bottom: 14px; }
+        .view-btn { padding: 6px 14px; border: 1px solid #ddd; border-radius: 6px; background: white; cursor: pointer; font-size: 0.82rem; color: #666; }
+        .view-btn.active { background: #c05e00; color: white; border-color: #c05e00; }
+        .sort-label { font-size: 0.8rem; color: #888; }
+        .sort-select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.82rem; }
+        .sort-select:focus { outline: none; border-color: #c05e00; }
+
+        /* Card grid */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .suburb-card {
+            background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            overflow: hidden; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+            border: 2px solid transparent;
+        }
+        .suburb-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        .suburb-card.selected { border-color: #c05e00; }
+        .card-band { height: 6px; }
+        .card-inner { padding: 16px 18px; }
+        .card-name { font-size: 1.05rem; font-weight: 700; color: #1a1a1a; }
+        .card-meta { font-size: 0.78rem; color: #888; margin-top: 2px; }
+        .card-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+        .cs { }
+        .cs .cv { font-size: 1.1rem; font-weight: 700; color: #c05e00; }
+        .cs .cl { font-size: 0.72rem; color: #aaa; margin-top: 1px; }
+        .mini-bars { margin-top: 12px; display: flex; flex-direction: column; gap: 5px; }
+        .mini-bar-row { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; }
+        .mini-bar-label { width: 90px; color: #888; flex-shrink: 0; }
+        .mini-bar-track { flex: 1; background: #f0f0f0; border-radius: 3px; height: 6px; }
+        .mini-bar-fill { height: 6px; border-radius: 3px; background: #c05e00; }
+        .mini-bar-val { width: 36px; text-align: right; color: #555; }
+
+        /* Table view */
+        .table-wrap { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        thead th { background: #c05e00; color: white; text-align: left; padding: 11px 14px; font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
+        thead th:hover { background: #a34f00; }
+        thead th.sort-asc::after  { content: ' ▲'; font-size: 0.7rem; }
+        thead th.sort-desc::after { content: ' ▼'; font-size: 0.7rem; }
+        tbody tr { cursor: pointer; }
+        tbody tr:nth-child(even) { background: #fdf6f0; }
+        tbody tr:hover { background: #fde8d0; }
+        tbody tr.selected { background: #ffd9b3; }
+        tbody td { padding: 10px 14px; border-bottom: 1px solid #f0e8e0; }
+        .td-name { font-weight: 700; color: #1a1a1a; }
+        .td-pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
+
+        /* Detail panel */
+        .detail-panel {
+            background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.09);
+            margin-top: 24px; overflow: hidden;
+        }
+        .detail-header { background: linear-gradient(135deg, #c05e00, #e07820); color: white; padding: 22px 28px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+        .detail-title { font-size: 1.5rem; font-weight: 800; }
+        .detail-subtitle { font-size: 0.85rem; opacity: 0.8; margin-top: 4px; }
+        .close-btn { background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 0.85rem; flex-shrink: 0; }
+        .close-btn:hover { background: rgba(255,255,255,0.35); }
+        .detail-body { padding: 24px 28px; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media(max-width:640px) { .detail-grid { grid-template-columns: 1fr; } }
+        .detail-section { }
+        .section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #c05e00; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid #fde8d0; }
+        .stat-list { display: flex; flex-direction: column; gap: 10px; }
+        .stat-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.88rem; }
+        .stat-row .sr-label { color: #777; }
+        .stat-row .sr-val { font-weight: 700; color: #1a1a1a; }
+        .bar-row { margin-top: 4px; }
+        .bar-row .br-label { display: flex; justify-content: space-between; font-size: 0.78rem; color: #888; margin-bottom: 3px; }
+        .bar-track { background: #f0ebe6; border-radius: 4px; height: 10px; }
+        .bar-fill { height: 10px; border-radius: 4px; background: #c05e00; transition: width 0.4s; }
+        .wiki-section { margin-top: 20px; }
+        .wiki-extract { font-size: 0.9rem; line-height: 1.7; color: #444; }
+        .wiki-link { display: inline-block; margin-top: 10px; font-size: 0.82rem; color: #c05e00; text-decoration: none; }
+        .wiki-link:hover { text-decoration: underline; }
+        .wiki-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ddd; border-top-color: #c05e00; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .wiki-thumb { float: right; margin: 0 0 12px 16px; border-radius: 8px; max-width: 160px; max-height: 140px; object-fit: cover; }
+
+        .hidden { display: none; }
+        .source { font-size: 0.75rem; color: #aaa; text-align: right; margin-top: 14px; }
+        .empty-msg { text-align: center; padding: 40px; color: #aaa; font-size: 0.95rem; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Sydney Suburbs</h1>
+    <p>Demographics, population, and community profiles across Greater Sydney</p>
+</header>
+<nav class="breadcrumb">
+    <a href="/">Home</a>
+    <span class="sep">›</span>
+    <span class="current">Sydney Suburbs</span>
+</nav>
+
+<div class="container">
+    <!-- Controls -->
+    <div class="controls">
+        <div class="field">
+            <label>Search suburb</label>
+            <input type="text" id="searchInput" placeholder="e.g. Bondi, Parramatta…" oninput="applyFilters()" />
+        </div>
+        <div class="field">
+            <label>Sort by</label>
+            <select id="sortSelect" onchange="applyFilters()">
+                <option value="name">Name (A–Z)</option>
+                <option value="pop_desc">Population ↓</option>
+                <option value="pop_asc">Population ↑</option>
+                <option value="income_desc">Median income ↓</option>
+                <option value="income_asc">Median income ↑</option>
+                <option value="age_desc">Median age ↓</option>
+                <option value="age_asc">Median age ↑</option>
+                <option value="overseas_desc">% Overseas-born ↓</option>
+                <option value="density_desc">Density ↓</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>View</label>
+            <select id="viewSelect" onchange="applyFilters()">
+                <option value="cards">Cards</option>
+                <option value="table">Table</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Region tabs -->
+    <div class="region-tabs" id="regionTabs"></div>
+
+    <!-- Stats -->
+    <div class="stat-bar" id="statBar">
+        <div class="stat-box"><div class="val" id="s1">—</div><div class="lbl">Suburbs shown</div></div>
+        <div class="stat-box"><div class="val" id="s2">—</div><div class="lbl">Total population</div></div>
+        <div class="stat-box"><div class="val" id="s3">—</div><div class="lbl">Avg median age</div></div>
+        <div class="stat-box"><div class="val" id="s4">—</div><div class="lbl">Avg median income (wkly)</div></div>
+        <div class="stat-box"><div class="val" id="s5">—</div><div class="lbl">Avg % overseas-born</div></div>
+    </div>
+
+    <!-- List -->
+    <div id="listContainer"></div>
+
+    <!-- Detail panel -->
+    <div class="detail-panel hidden" id="detailPanel"></div>
+
+    <p class="source">Demographics: ABS Census 2021 (approximate). Descriptions: Wikipedia.</p>
+</div>
+
+<script>
+// ─── Suburb dataset ───────────────────────────────────────────────────────────
+// pop: population, area: km², medAge: median age, medIncome: median weekly household income (AUD),
+// pctOverseas: % born overseas, pctLOTE: % speak language other than English at home
+const SUBURBS = [
+    // City / Inner
+    { name:'Sydney CBD',       lga:'City of Sydney',       postcode:2000, region:'City/Inner',      area:6.8,  pop:29502, medAge:32, medIncome:2650, pctOverseas:62, pctLOTE:45, wiki:'Sydney_city_centre,_New_South_Wales' },
+    { name:'Pyrmont',          lga:'City of Sydney',       postcode:2009, region:'City/Inner',      area:0.8,  pop:15224, medAge:33, medIncome:2680, pctOverseas:50, pctLOTE:32, wiki:'Pyrmont,_New_South_Wales' },
+    { name:'Surry Hills',      lga:'City of Sydney',       postcode:2010, region:'City/Inner',      area:1.5,  pop:15210, medAge:33, medIncome:2300, pctOverseas:48, pctLOTE:35, wiki:'Surry_Hills,_New_South_Wales' },
+    { name:'Darlinghurst',     lga:'City of Sydney',       postcode:2010, region:'City/Inner',      area:0.9,  pop:12180, medAge:34, medIncome:2200, pctOverseas:45, pctLOTE:30, wiki:'Darlinghurst,_New_South_Wales' },
+    { name:'Glebe',            lga:'City of Sydney',       postcode:2037, region:'City/Inner',      area:1.8,  pop:9852,  medAge:35, medIncome:2100, pctOverseas:38, pctLOTE:28, wiki:'Glebe,_New_South_Wales' },
+    { name:'Ultimo',           lga:'City of Sydney',       postcode:2007, region:'City/Inner',      area:0.5,  pop:8240,  medAge:28, medIncome:1950, pctOverseas:55, pctLOTE:50, wiki:'Ultimo,_New_South_Wales' },
+    // Inner West
+    { name:'Newtown',          lga:'Inner West',           postcode:2042, region:'Inner West',      area:1.4,  pop:13840, medAge:31, medIncome:1950, pctOverseas:33, pctLOTE:20, wiki:'Newtown,_New_South_Wales' },
+    { name:'Balmain',          lga:'Inner West',           postcode:2041, region:'Inner West',      area:1.5,  pop:12240, medAge:37, medIncome:2600, pctOverseas:35, pctLOTE:15, wiki:'Balmain,_New_South_Wales' },
+    { name:'Leichhardt',       lga:'Inner West',           postcode:2040, region:'Inner West',      area:2.4,  pop:11840, medAge:36, medIncome:2250, pctOverseas:32, pctLOTE:22, wiki:'Leichhardt,_New_South_Wales' },
+    { name:'Marrickville',     lga:'Inner West',           postcode:2204, region:'Inner West',      area:2.8,  pop:20540, medAge:32, medIncome:1950, pctOverseas:40, pctLOTE:32, wiki:'Marrickville,_New_South_Wales' },
+    { name:'Annandale',        lga:'Inner West',           postcode:2038, region:'Inner West',      area:1.2,  pop:8920,  medAge:37, medIncome:2350, pctOverseas:32, pctLOTE:18, wiki:'Annandale,_New_South_Wales' },
+    { name:'Petersham',        lga:'Inner West',           postcode:2049, region:'Inner West',      area:1.1,  pop:8640,  medAge:34, medIncome:2050, pctOverseas:36, pctLOTE:24, wiki:'Petersham,_New_South_Wales' },
+    { name:'Burwood',          lga:'Burwood',              postcode:2134, region:'Inner West',      area:1.8,  pop:10840, medAge:30, medIncome:1750, pctOverseas:62, pctLOTE:58, wiki:'Burwood,_New_South_Wales' },
+    { name:'Strathfield',      lga:'Strathfield',          postcode:2135, region:'Inner West',      area:2.0,  pop:14520, medAge:31, medIncome:1850, pctOverseas:65, pctLOTE:60, wiki:'Strathfield,_New_South_Wales' },
+    { name:'Ashfield',         lga:'Inner West',           postcode:2131, region:'Inner West',      area:2.1,  pop:12840, medAge:33, medIncome:1900, pctOverseas:55, pctLOTE:50, wiki:'Ashfield,_New_South_Wales' },
+    // Eastern Suburbs
+    { name:'Bondi Beach',      lga:'Waverley',             postcode:2026, region:'Eastern',         area:1.0,  pop:11240, medAge:30, medIncome:2180, pctOverseas:55, pctLOTE:28, wiki:'Bondi_Beach' },
+    { name:'Bondi Junction',   lga:'Waverley',             postcode:2022, region:'Eastern',         area:1.2,  pop:15020, medAge:31, medIncome:2250, pctOverseas:52, pctLOTE:30, wiki:'Bondi_Junction' },
+    { name:'Randwick',         lga:'Randwick',             postcode:2031, region:'Eastern',         area:3.0,  pop:30421, medAge:34, medIncome:2050, pctOverseas:44, pctLOTE:30, wiki:'Randwick,_New_South_Wales' },
+    { name:'Coogee',           lga:'Randwick',             postcode:2034, region:'Eastern',         area:1.4,  pop:12420, medAge:31, medIncome:2200, pctOverseas:45, pctLOTE:22, wiki:'Coogee,_New_South_Wales' },
+    { name:'Maroubra',         lga:'Randwick',             postcode:2035, region:'Eastern',         area:4.5,  pop:25320, medAge:35, medIncome:1980, pctOverseas:40, pctLOTE:28, wiki:'Maroubra' },
+    { name:'Double Bay',       lga:'Woollahra',            postcode:2028, region:'Eastern',         area:0.9,  pop:5820,  medAge:40, medIncome:3800, pctOverseas:48, pctLOTE:25, wiki:'Double_Bay,_New_South_Wales' },
+    { name:'Paddington',       lga:'Woollahra',            postcode:2021, region:'Eastern',         area:1.8,  pop:14210, medAge:36, medIncome:2800, pctOverseas:42, pctLOTE:18, wiki:'Paddington,_New_South_Wales' },
+    { name:'Rose Bay',         lga:'Woollahra',            postcode:2029, region:'Eastern',         area:2.0,  pop:10840, medAge:40, medIncome:3200, pctOverseas:50, pctLOTE:25, wiki:'Rose_Bay,_New_South_Wales' },
+    { name:'Vaucluse',         lga:'Woollahra',            postcode:2030, region:'Eastern',         area:4.2,  pop:9840,  medAge:43, medIncome:4100, pctOverseas:38, pctLOTE:18, wiki:'Vaucluse,_New_South_Wales' },
+    { name:'Kensington',       lga:'Randwick',             postcode:2033, region:'Eastern',         area:1.4,  pop:11240, medAge:28, medIncome:1850, pctOverseas:50, pctLOTE:38, wiki:'Kensington,_New_South_Wales' },
+    // North Shore
+    { name:'North Sydney',     lga:'North Sydney',         postcode:2060, region:'North Shore',     area:2.0,  pop:12420, medAge:33, medIncome:2800, pctOverseas:42, pctLOTE:28, wiki:'North_Sydney,_New_South_Wales' },
+    { name:'Mosman',           lga:'Mosman',               postcode:2088, region:'North Shore',     area:6.1,  pop:29240, medAge:42, medIncome:3600, pctOverseas:35, pctLOTE:18, wiki:'Mosman,_New_South_Wales' },
+    { name:'Chatswood',        lga:'Willoughby',           postcode:2067, region:'North Shore',     area:3.5,  pop:25020, medAge:34, medIncome:2200, pctOverseas:58, pctLOTE:52, wiki:'Chatswood,_New_South_Wales' },
+    { name:'Cremorne',         lga:'North Sydney',         postcode:2090, region:'North Shore',     area:1.1,  pop:9040,  medAge:35, medIncome:2800, pctOverseas:38, pctLOTE:18, wiki:'Cremorne,_New_South_Wales' },
+    { name:'Neutral Bay',      lga:'North Sydney',         postcode:2089, region:'North Shore',     area:1.3,  pop:12240, medAge:32, medIncome:2650, pctOverseas:42, pctLOTE:25, wiki:'Neutral_Bay' },
+    { name:'Lane Cove',        lga:'Lane Cove',            postcode:2066, region:'North Shore',     area:4.5,  pop:12840, medAge:38, medIncome:2550, pctOverseas:38, pctLOTE:32, wiki:'Lane_Cove,_New_South_Wales' },
+    { name:'Pymble',           lga:'Ku-ring-gai',          postcode:2073, region:'North Shore',     area:6.0,  pop:11240, medAge:42, medIncome:3200, pctOverseas:35, pctLOTE:28, wiki:'Pymble,_New_South_Wales' },
+    { name:'Gordon',           lga:'Ku-ring-gai',          postcode:2072, region:'North Shore',     area:4.8,  pop:10420, medAge:43, medIncome:3100, pctOverseas:38, pctLOTE:30, wiki:'Gordon,_New_South_Wales' },
+    { name:'Turramurra',       lga:'Ku-ring-gai',          postcode:2074, region:'North Shore',     area:5.2,  pop:12840, medAge:44, medIncome:3050, pctOverseas:34, pctLOTE:25, wiki:'Turramurra' },
+    // Northern Beaches
+    { name:'Manly',            lga:'Northern Beaches',     postcode:2095, region:'Northern Beaches',area:1.4,  pop:15240, medAge:34, medIncome:2600, pctOverseas:45, pctLOTE:22, wiki:'Manly,_New_South_Wales' },
+    { name:'Dee Why',          lga:'Northern Beaches',     postcode:2099, region:'Northern Beaches',area:1.7,  pop:17420, medAge:35, medIncome:1950, pctOverseas:40, pctLOTE:22, wiki:'Dee_Why' },
+    { name:'Narrabeen',        lga:'Northern Beaches',     postcode:2101, region:'Northern Beaches',area:3.0,  pop:8240,  medAge:39, medIncome:2050, pctOverseas:28, pctLOTE:15, wiki:'Narrabeen,_New_South_Wales' },
+    { name:'Mona Vale',        lga:'Northern Beaches',     postcode:2103, region:'Northern Beaches',area:3.5,  pop:9420,  medAge:41, medIncome:2200, pctOverseas:28, pctLOTE:14, wiki:'Mona_Vale,_New_South_Wales' },
+    { name:'Avalon Beach',     lga:'Northern Beaches',     postcode:2107, region:'Northern Beaches',area:3.5,  pop:8240,  medAge:44, medIncome:2350, pctOverseas:30, pctLOTE:14, wiki:'Avalon_Beach,_New_South_Wales' },
+    { name:'Warriewood',       lga:'Northern Beaches',     postcode:2102, region:'Northern Beaches',area:2.8,  pop:7420,  medAge:37, medIncome:2250, pctOverseas:32, pctLOTE:18, wiki:'Warriewood,_New_South_Wales' },
+    // Western
+    { name:'Parramatta',       lga:'City of Parramatta',   postcode:2150, region:'Western',         area:5.8,  pop:26820, medAge:29, medIncome:1550, pctOverseas:58, pctLOTE:55, wiki:'Parramatta' },
+    { name:'Blacktown',        lga:'Blacktown',            postcode:2148, region:'Western',         area:4.0,  pop:18520, medAge:30, medIncome:1450, pctOverseas:48, pctLOTE:45, wiki:'Blacktown,_New_South_Wales' },
+    { name:'Penrith',          lga:'Penrith',              postcode:2750, region:'Western',         area:5.5,  pop:19840, medAge:34, medIncome:1400, pctOverseas:22, pctLOTE:18, wiki:'Penrith,_New_South_Wales' },
+    { name:'Auburn',           lga:'Cumberland',           postcode:2144, region:'Western',         area:2.0,  pop:15240, medAge:28, medIncome:1250, pctOverseas:70, pctLOTE:72, wiki:'Auburn,_New_South_Wales' },
+    { name:'Merrylands',       lga:'Cumberland',           postcode:2160, region:'Western',         area:2.8,  pop:18420, medAge:31, medIncome:1320, pctOverseas:55, pctLOTE:58, wiki:'Merrylands,_New_South_Wales' },
+    { name:'Westmead',         lga:'City of Parramatta',   postcode:2145, region:'Western',         area:1.5,  pop:9840,  medAge:27, medIncome:1480, pctOverseas:62, pctLOTE:60, wiki:'Westmead,_New_South_Wales' },
+    // South West
+    { name:'Liverpool',        lga:'Liverpool',            postcode:2170, region:'South West',      area:4.8,  pop:24820, medAge:29, medIncome:1320, pctOverseas:52, pctLOTE:55, wiki:'Liverpool,_New_South_Wales' },
+    { name:'Bankstown',        lga:'Canterbury-Bankstown', postcode:2200, region:'South West',      area:3.2,  pop:19840, medAge:30, medIncome:1280, pctOverseas:55, pctLOTE:60, wiki:'Bankstown,_New_South_Wales' },
+    { name:'Cabramatta',       lga:'Fairfield',            postcode:2166, region:'South West',      area:2.5,  pop:22420, medAge:33, medIncome:1180, pctOverseas:72, pctLOTE:78, wiki:'Cabramatta,_New_South_Wales' },
+    { name:'Fairfield',        lga:'Fairfield',            postcode:2165, region:'South West',      area:3.5,  pop:20240, medAge:33, medIncome:1200, pctOverseas:65, pctLOTE:70, wiki:'Fairfield,_New_South_Wales' },
+    { name:'Campbelltown',     lga:'Campbelltown',         postcode:2560, region:'South West',      area:7.0,  pop:25240, medAge:31, medIncome:1380, pctOverseas:28, pctLOTE:25, wiki:'Campbelltown,_New_South_Wales' },
+    // Southern
+    { name:'Hurstville',       lga:'Georges River',        postcode:2220, region:'Southern',        area:3.0,  pop:22420, medAge:32, medIncome:1580, pctOverseas:62, pctLOTE:65, wiki:'Hurstville,_New_South_Wales' },
+    { name:'Kogarah',          lga:'Georges River',        postcode:2217, region:'Southern',        area:1.5,  pop:12240, medAge:34, medIncome:1680, pctOverseas:52, pctLOTE:48, wiki:'Kogarah,_New_South_Wales' },
+    { name:'Cronulla',         lga:'Sutherland Shire',     postcode:2230, region:'Southern',        area:2.0,  pop:15240, medAge:38, medIncome:2100, pctOverseas:30, pctLOTE:15, wiki:'Cronulla,_New_South_Wales' },
+    { name:'Miranda',          lga:'Sutherland Shire',     postcode:2228, region:'Southern',        area:3.5,  pop:14820, medAge:38, medIncome:1980, pctOverseas:26, pctLOTE:14, wiki:'Miranda,_New_South_Wales' },
+    { name:'Rockdale',         lga:'Bayside',              postcode:2216, region:'Southern',        area:2.5,  pop:15420, medAge:33, medIncome:1580, pctOverseas:55, pctLOTE:52, wiki:'Rockdale,_New_South_Wales' },
+    { name:'Sutherland',       lga:'Sutherland Shire',     postcode:2232, region:'Southern',        area:4.0,  pop:14240, medAge:37, medIncome:2000, pctOverseas:22, pctLOTE:14, wiki:'Sutherland,_New_South_Wales' },
+    // Hills / Northwest
+    { name:'Castle Hill',      lga:'The Hills Shire',      postcode:2154, region:'Hills/NW',        area:12.0, pop:39840, medAge:37, medIncome:2250, pctOverseas:40, pctLOTE:38, wiki:'Castle_Hill,_New_South_Wales' },
+    { name:'Baulkham Hills',   lga:'The Hills Shire',      postcode:2153, region:'Hills/NW',        area:8.5,  pop:28420, medAge:38, medIncome:2150, pctOverseas:38, pctLOTE:35, wiki:'Baulkham_Hills' },
+    { name:'Kellyville',       lga:'The Hills Shire',      postcode:2155, region:'Hills/NW',        area:9.0,  pop:25240, medAge:35, medIncome:2400, pctOverseas:45, pctLOTE:42, wiki:'Kellyville,_New_South_Wales' },
+    { name:'Cherrybrook',      lga:'The Hills Shire',      postcode:2126, region:'Hills/NW',        area:6.5,  pop:17420, medAge:38, medIncome:2380, pctOverseas:42, pctLOTE:40, wiki:'Cherrybrook,_New_South_Wales' },
+    { name:'Rouse Hill',       lga:'The Hills Shire',      postcode:2155, region:'Hills/NW',        area:5.2,  pop:19840, medAge:33, medIncome:2150, pctOverseas:40, pctLOTE:38, wiki:'Rouse_Hill,_New_South_Wales' },
+    { name:'Norwest',          lga:'The Hills Shire',      postcode:2153, region:'Hills/NW',        area:3.8,  pop:11240, medAge:34, medIncome:2300, pctOverseas:48, pctLOTE:45, wiki:'Norwest,_New_South_Wales' },
+];
+
+const REGIONS = ['All', ...Array.from(new Set(SUBURBS.map(s => s.region))).sort()];
+let activeRegion = 'All';
+let selectedSuburb = null;
+let sortKey = 'name';
+let wikiCache = {};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function fmtPop(n) { return n >= 1000 ? (n/1000).toFixed(1)+'K' : n.toLocaleString(); }
+function fmtMoney(n) { return '$' + n.toLocaleString(); }
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function density(s) { return (s.pop / s.area).toFixed(0); }
+
+// Colour per region
+const REGION_COLORS = {
+    'City/Inner':      '#c05e00',
+    'Inner West':      '#7c3aed',
+    'Eastern':         '#0284c7',
+    'North Shore':     '#0f766e',
+    'Northern Beaches':'#0369a1',
+    'Western':         '#b45309',
+    'South West':      '#be185d',
+    'Southern':        '#4f7942',
+    'Hills/NW':        '#7c2d12',
+};
+function regionColor(r) { return REGION_COLORS[r] || '#888'; }
+
+// ─── Sorting ──────────────────────────────────────────────────────────────────
+function sorted(list) {
+    const l = [...list];
+    switch(sortKey) {
+        case 'name':         return l.sort((a,b) => a.name.localeCompare(b.name));
+        case 'pop_desc':     return l.sort((a,b) => b.pop - a.pop);
+        case 'pop_asc':      return l.sort((a,b) => a.pop - b.pop);
+        case 'income_desc':  return l.sort((a,b) => b.medIncome - a.medIncome);
+        case 'income_asc':   return l.sort((a,b) => a.medIncome - b.medIncome);
+        case 'age_desc':     return l.sort((a,b) => b.medAge - a.medAge);
+        case 'age_asc':      return l.sort((a,b) => a.medAge - b.medAge);
+        case 'overseas_desc':return l.sort((a,b) => b.pctOverseas - a.pctOverseas);
+        case 'density_desc': return l.sort((a,b) => (b.pop/b.area) - (a.pop/a.area));
+        default: return l;
+    }
+}
+
+// ─── Region tabs ──────────────────────────────────────────────────────────────
+function buildTabs() {
+    document.getElementById('regionTabs').innerHTML = REGIONS.map(r =>
+        `<div class="rtab ${r === activeRegion ? 'active' : ''}" onclick="setRegion('${escHtml(r)}')">${escHtml(r)}</div>`
+    ).join('');
+}
+function setRegion(r) { activeRegion = r; buildTabs(); applyFilters(); }
+
+// ─── Filter + render ──────────────────────────────────────────────────────────
+function applyFilters() {
+    sortKey = document.getElementById('sortSelect').value;
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const view = document.getElementById('viewSelect').value;
+
+    let list = SUBURBS.filter(s => {
+        if (activeRegion !== 'All' && s.region !== activeRegion) return false;
+        if (q && !s.name.toLowerCase().includes(q) && !s.lga.toLowerCase().includes(q)) return false;
+        return true;
+    });
+    list = sorted(list);
+
+    updateStats(list);
+    if (view === 'table') renderTable(list);
+    else renderCards(list);
+
+    // Re-render detail if selected suburb filtered out
+    if (selectedSuburb && !list.find(s => s.name === selectedSuburb.name)) {
+        selectedSuburb = null;
+        document.getElementById('detailPanel').classList.add('hidden');
+    }
+}
+
+function updateStats(list) {
+    const totalPop = list.reduce((s,a) => s+a.pop, 0);
+    const avgAge = list.length ? (list.reduce((s,a) => s+a.medAge, 0)/list.length).toFixed(0) : '—';
+    const avgIncome = list.length ? Math.round(list.reduce((s,a) => s+a.medIncome, 0)/list.length) : 0;
+    const avgOverseas = list.length ? (list.reduce((s,a) => s+a.pctOverseas, 0)/list.length).toFixed(0) : '—';
+    document.getElementById('s1').textContent = list.length;
+    document.getElementById('s2').textContent = fmtPop(totalPop);
+    document.getElementById('s3').textContent = avgAge + ' yrs';
+    document.getElementById('s4').textContent = fmtMoney(avgIncome);
+    document.getElementById('s5').textContent = avgOverseas + '%';
+}
+
+// ─── Cards ────────────────────────────────────────────────────────────────────
+function renderCards(list) {
+    if (!list.length) {
+        document.getElementById('listContainer').innerHTML = '<div class="empty-msg">No suburbs match your filters.</div>';
+        return;
+    }
+    const maxPop = Math.max(...SUBURBS.map(s=>s.pop));
+    const maxIncome = Math.max(...SUBURBS.map(s=>s.medIncome));
+    const html = list.map(s => `
+    <div class="suburb-card ${selectedSuburb && selectedSuburb.name===s.name ? 'selected' : ''}" onclick="selectSuburb('${escHtml(s.name)}')">
+        <div class="card-band" style="background:${regionColor(s.region)}"></div>
+        <div class="card-inner">
+            <div class="card-name">${escHtml(s.name)}</div>
+            <div class="card-meta">${escHtml(s.lga)} · ${s.postcode} · <span style="color:${regionColor(s.region)};font-weight:600">${escHtml(s.region)}</span></div>
+            <div class="card-stats">
+                <div class="cs"><div class="cv">${fmtPop(s.pop)}</div><div class="cl">Population</div></div>
+                <div class="cs"><div class="cv">${s.medAge}</div><div class="cl">Median age</div></div>
+                <div class="cs"><div class="cv">${fmtMoney(s.medIncome)}</div><div class="cl">Wkly household income</div></div>
+                <div class="cs"><div class="cv">${density(s)}</div><div class="cl">People / km²</div></div>
+            </div>
+            <div class="mini-bars">
+                <div class="mini-bar-row">
+                    <span class="mini-bar-label">Overseas-born</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${s.pctOverseas}%;background:${regionColor(s.region)}"></div></div>
+                    <span class="mini-bar-val">${s.pctOverseas}%</span>
+                </div>
+                <div class="mini-bar-row">
+                    <span class="mini-bar-label">Speak LOTE</span>
+                    <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${s.pctLOTE}%;background:${regionColor(s.region)}"></div></div>
+                    <span class="mini-bar-val">${s.pctLOTE}%</span>
+                </div>
+            </div>
+        </div>
+    </div>`).join('');
+    document.getElementById('listContainer').innerHTML = `<div class="cards-grid">${html}</div>`;
+}
+
+// ─── Table ────────────────────────────────────────────────────────────────────
+let tSortCol = null, tSortDir = 1;
+const COLS = [
+    { key:'name',       label:'Suburb',           fmt: s => `<span class="td-name">${escHtml(s.name)}</span>` },
+    { key:'region',     label:'Region',           fmt: s => `<span class="td-pill" style="background:${regionColor(s.region)}22;color:${regionColor(s.region)}">${escHtml(s.region)}</span>` },
+    { key:'lga',        label:'LGA',              fmt: s => escHtml(s.lga) },
+    { key:'postcode',   label:'Postcode',         fmt: s => s.postcode },
+    { key:'pop',        label:'Population',       fmt: s => s.pop.toLocaleString() },
+    { key:'area',       label:'Area km²',         fmt: s => s.area.toFixed(1) },
+    { key:'density',    label:'Density /km²',     fmt: s => density(s) },
+    { key:'medAge',     label:'Median Age',       fmt: s => s.medAge },
+    { key:'medIncome',  label:'Wkly Income',      fmt: s => fmtMoney(s.medIncome) },
+    { key:'pctOverseas',label:'% Overseas',       fmt: s => s.pctOverseas + '%' },
+    { key:'pctLOTE',    label:'% LOTE',           fmt: s => s.pctLOTE + '%' },
+];
+
+function renderTable(list) {
+    const head = COLS.map((c,i) => {
+        const cls = tSortCol===i ? (tSortDir===1?'sort-desc':'sort-asc') : '';
+        return `<th class="${cls}" onclick="tSort(${i})">${c.label}</th>`;
+    }).join('');
+    const body = list.map(s => {
+        const sel = selectedSuburb && selectedSuburb.name===s.name ? 'selected' : '';
+        return `<tr class="${sel}" onclick="selectSuburb('${escHtml(s.name)}')">${COLS.map(c=>`<td>${c.fmt(s)}</td>`).join('')}</tr>`;
+    }).join('');
+    document.getElementById('listContainer').innerHTML = `
+    <div class="table-wrap">
+        <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
+    </div>`;
+}
+
+function tSort(i) {
+    if (tSortCol===i) tSortDir=-tSortDir; else { tSortCol=i; tSortDir=1; }
+    // Map col index to sort key
+    const keyMap = ['name','region','lga','postcode','pop_desc','area','density','age_desc','income_desc','overseas_desc','lote'];
+    // We just re-sort with the main sort mechanism approximated
+    const col = COLS[i];
+    const view = document.getElementById('viewSelect').value;
+    // rebuild filtered list
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    let list = SUBURBS.filter(s => {
+        if (activeRegion!=='All' && s.region!==activeRegion) return false;
+        if (q && !s.name.toLowerCase().includes(q) && !s.lga.toLowerCase().includes(q)) return false;
+        return true;
+    });
+    list.sort((a,b) => {
+        let av, bv;
+        if (col.key==='name')    { av=a.name;     bv=b.name; }
+        else if (col.key==='region') { av=a.region; bv=b.region; }
+        else if (col.key==='lga')    { av=a.lga;   bv=b.lga; }
+        else if (col.key==='density'){ av=a.pop/a.area; bv=b.pop/b.area; }
+        else { av=a[col.key]; bv=b[col.key]; }
+        if (typeof av==='string') return av.localeCompare(bv)*tSortDir;
+        return (av-bv)*tSortDir;
+    });
+    renderTable(list);
+}
+
+// ─── Detail panel ─────────────────────────────────────────────────────────────
+function selectSuburb(name) {
+    selectedSuburb = SUBURBS.find(s => s.name === name);
+    applyFilters(); // re-render to show selection highlight
+    showDetail(selectedSuburb);
+    setTimeout(() => document.getElementById('detailPanel').scrollIntoView({behavior:'smooth', block:'start'}), 100);
+}
+
+function closeDetail() {
+    selectedSuburb = null;
+    document.getElementById('detailPanel').classList.add('hidden');
+    applyFilters();
+}
+
+function showDetail(s) {
+    const panel = document.getElementById('detailPanel');
+    const col = regionColor(s.region);
+    panel.innerHTML = `
+    <div class="detail-header" style="background:linear-gradient(135deg,${col},${col}cc)">
+        <div>
+            <div class="detail-title">${escHtml(s.name)}</div>
+            <div class="detail-subtitle">${escHtml(s.lga)} · ${escHtml(s.region)} · Postcode ${s.postcode}</div>
+        </div>
+        <button class="close-btn" onclick="closeDetail()">✕ Close</button>
+    </div>
+    <div class="detail-body">
+        <div class="detail-grid">
+            <div class="detail-section">
+                <div class="section-title">Population & Geography</div>
+                <div class="stat-list">
+                    <div class="stat-row"><span class="sr-label">Population (2021)</span><span class="sr-val">${s.pop.toLocaleString()}</span></div>
+                    <div class="stat-row"><span class="sr-label">Area</span><span class="sr-val">${s.area.toFixed(1)} km²</span></div>
+                    <div class="stat-row"><span class="sr-label">Population density</span><span class="sr-val">${density(s)} per km²</span></div>
+                    <div class="stat-row"><span class="sr-label">Local Government Area</span><span class="sr-val">${escHtml(s.lga)}</span></div>
+                    <div class="stat-row"><span class="sr-label">Region</span><span class="sr-val" style="color:${col}">${escHtml(s.region)}</span></div>
+                </div>
+            </div>
+            <div class="detail-section">
+                <div class="section-title">Economic Profile</div>
+                <div class="stat-list">
+                    <div class="stat-row"><span class="sr-label">Median age</span><span class="sr-val">${s.medAge} years</span></div>
+                    <div class="stat-row"><span class="sr-label">Median wkly household income</span><span class="sr-val">${fmtMoney(s.medIncome)}</span></div>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:20px">
+            <div class="section-title" style="color:${col};border-bottom-color:${col}22">Cultural Diversity</div>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+                <div class="bar-row">
+                    <div class="br-label"><span>Born overseas</span><span>${s.pctOverseas}%</span></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:${s.pctOverseas}%;background:${col}"></div></div>
+                </div>
+                <div class="bar-row">
+                    <div class="br-label"><span>Speak language other than English at home</span><span>${s.pctLOTE}%</span></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:${s.pctLOTE}%;background:${col}88"></div></div>
+                </div>
+                <div class="bar-row">
+                    <div class="br-label"><span>Australian-born</span><span>${100-s.pctOverseas}%</span></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:${100-s.pctOverseas}%;background:#aaa"></div></div>
+                </div>
+            </div>
+        </div>
+        <div class="wiki-section">
+            <div class="section-title" style="color:${col};border-bottom-color:${col}22;margin-top:20px">About ${escHtml(s.name)}</div>
+            <div id="wikiContent"><span class="wiki-spinner"></span> Loading from Wikipedia…</div>
+        </div>
+    </div>`;
+    panel.classList.remove('hidden');
+    loadWiki(s);
+}
+
+async function loadWiki(s) {
+    const key = s.wiki;
+    if (wikiCache[key]) { renderWiki(wikiCache[key]); return; }
+    try {
+        const resp = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(key)}`, { headers:{Accept:'application/json'} });
+        if (!resp.ok) throw new Error(resp.status);
+        const data = await resp.json();
+        wikiCache[key] = data;
+        renderWiki(data);
+    } catch {
+        document.getElementById('wikiContent').innerHTML = `<span style="color:#aaa;font-size:0.85rem">Wikipedia summary not available.</span>`;
+    }
+}
+
+function renderWiki(data) {
+    const thumb = data.thumbnail ? `<img class="wiki-thumb" src="${data.thumbnail.source}" alt="">` : '';
+    const extract = data.extract ? escHtml(data.extract) : 'No description available.';
+    const url = `https://en.wikipedia.org/wiki/${encodeURIComponent(data.title || '')}`;
+    document.getElementById('wikiContent').innerHTML = `
+        ${thumb}
+        <p class="wiki-extract">${extract}</p>
+        <a class="wiki-link" href="${url}" target="_blank" rel="noopener">Read full article on Wikipedia →</a>`;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+buildTabs();
+applyFilters();
+</script>
+</body>
+</html>

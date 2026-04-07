@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Conditions Explorer</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
+        header { background: #b71c1c; color: white; padding: 20px 40px; }
+        header h1 { font-size: 1.6rem; font-weight: 600; }
+        header p { font-size: 0.9rem; opacity: 0.75; margin-top: 4px; }
+        .container { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+
+        .search-card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.09); padding: 24px; margin-bottom: 24px; }
+        .search-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+        .search-input-wrap { flex: 1; min-width: 200px; position: relative; }
+        .search-input-wrap input {
+            width: 100%; padding: 11px 16px; border: 2px solid #ddd; border-radius: 8px;
+            font-size: 1rem; transition: border-color 0.2s;
+        }
+        .search-input-wrap input:focus { outline: none; border-color: #b71c1c; }
+        .btn-search {
+            padding: 11px 28px; background: #b71c1c; color: white;
+            border: none; border-radius: 8px; font-size: 0.95rem; cursor: pointer; font-weight: 600;
+            white-space: nowrap;
+        }
+        .btn-search:hover { background: #8b0000; }
+        .btn-search:disabled { opacity: 0.55; cursor: default; }
+        .suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px; z-index: 10; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .suggestion-item { padding: 10px 16px; cursor: pointer; font-size: 0.92rem; border-bottom: 1px solid #f0f0f0; }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: #fdecea; }
+        .quick-links { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+        .quick-chip {
+            padding: 5px 14px; border: 1px solid #e0c4c4; border-radius: 20px;
+            font-size: 0.82rem; cursor: pointer; background: #fff5f5; color: #b71c1c;
+            transition: background 0.15s;
+        }
+        .quick-chip:hover { background: #fdecea; }
+
+        #status { font-size: 0.92rem; color: #555; padding: 16px 0; text-align: center; min-height: 36px; }
+        #status.error { color: #c0392b; }
+        .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid #ddd; border-top-color: #b71c1c; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Result layout */
+        .result-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+        @media (max-width: 720px) { .result-layout { grid-template-columns: 1fr; } }
+
+        .info-card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden; }
+        .info-card-image img { width: 100%; max-height: 220px; object-fit: cover; display: block; }
+        .info-card-image .no-img { width: 100%; height: 160px; background: linear-gradient(135deg, #fdecea, #ffcdd2); display: flex; align-items: center; justify-content: center; font-size: 4rem; }
+        .info-card-body { padding: 16px 18px; }
+        .condition-name { font-size: 1.3rem; font-weight: 800; color: #7f0000; }
+        .condition-also { font-size: 0.82rem; color: #888; margin-top: 4px; font-style: italic; }
+        .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+        .tag { padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; }
+        .tag-type { background: #fdecea; color: #b71c1c; }
+        .tag-sys  { background: #e3f2fd; color: #1565c0; }
+        .wiki-link { display: inline-block; margin-top: 14px; font-size: 0.82rem; color: #b71c1c; text-decoration: none; }
+        .wiki-link:hover { text-decoration: underline; }
+
+        .detail-card { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 22px; }
+        .section { margin-bottom: 22px; }
+        .section:last-child { margin-bottom: 0; }
+        .section-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #b71c1c; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #fdecea; }
+        .extract-text { font-size: 0.92rem; line-height: 1.7; color: #444; }
+        .treatment-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+        .treatment-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 0.9rem; line-height: 1.5; }
+        .treatment-list li::before { content: '💊'; flex-shrink: 0; margin-top: 1px; }
+        .related-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .related-chip { padding: 5px 13px; border: 1px solid #e0c4c4; border-radius: 16px; font-size: 0.82rem; cursor: pointer; color: #b71c1c; background: #fff5f5; }
+        .related-chip:hover { background: #fdecea; }
+
+        .disclaimer { background: #fffbea; border: 1px solid #ffe58f; border-radius: 6px; padding: 10px 16px; font-size: 0.8rem; color: #7a5c00; margin-top: 20px; }
+        .source { font-size: 0.78rem; color: #aaa; text-align: right; margin-top: 10px; }
+        .hidden { display: none; }
+
+        /* Search results list (when multiple matches) */
+        .results-list { display: flex; flex-direction: column; gap: 10px; }
+        .result-row { background: white; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.07); padding: 14px 18px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: box-shadow 0.15s, transform 0.12s; }
+        .result-row:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.12); transform: translateX(3px); }
+        .result-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+        .result-thumb-placeholder { width: 60px; height: 60px; border-radius: 8px; background: #fdecea; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0; }
+        .result-info { flex: 1; min-width: 0; }
+        .result-title { font-weight: 700; font-size: 0.97rem; color: #7f0000; }
+        .result-desc { font-size: 0.82rem; color: #666; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .result-arrow { color: #ccc; font-size: 1.2rem; }
+        .breadcrumb { background: #8b0000; padding: 8px 40px; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; }
+        .breadcrumb a { color: rgba(255,255,255,0.65); text-decoration: none; }
+        .breadcrumb a:hover { color: white; text-decoration: underline; }
+        .breadcrumb .sep { color: rgba(255,255,255,0.35); }
+        .breadcrumb .current { color: rgba(255,255,255,0.9); }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Medical Conditions Explorer</h1>
+    <p>Search for information on conditions, symptoms, and treatments · Source: Wikipedia Medical API</p>
+</header>
+<nav class="breadcrumb">
+    <a href="/">Home</a>
+    <span class="sep">›</span>
+    <span class="current">Medical Conditions</span>
+</nav>
+
+<div class="container">
+    <div class="search-card">
+        <div class="search-row">
+            <div class="search-input-wrap">
+                <input type="text" id="searchBox" placeholder="Search a condition — e.g. diabetes, asthma, hypertension…"
+                    autocomplete="off" oninput="onSearchInput()" onkeydown="onKeyDown(event)" />
+                <div class="suggestions hidden" id="suggestions"></div>
+            </div>
+            <button class="btn-search" id="searchBtn" onclick="doSearch()">Search</button>
+        </div>
+        <div class="quick-links">
+            <span style="font-size:0.8rem;color:#888;align-self:center">Quick search:</span>
+            <span class="quick-chip" onclick="quickSearch('Diabetes mellitus')">Diabetes</span>
+            <span class="quick-chip" onclick="quickSearch('Asthma')">Asthma</span>
+            <span class="quick-chip" onclick="quickSearch('Hypertension')">Hypertension</span>
+            <span class="quick-chip" onclick="quickSearch('Alzheimer\'s disease')">Alzheimer's</span>
+            <span class="quick-chip" onclick="quickSearch('Cancer')">Cancer</span>
+            <span class="quick-chip" onclick="quickSearch('Depression (mood)')">Depression</span>
+            <span class="quick-chip" onclick="quickSearch('Osteoarthritis')">Arthritis</span>
+            <span class="quick-chip" onclick="quickSearch('Pneumonia')">Pneumonia</span>
+            <span class="quick-chip" onclick="quickSearch('Stroke')">Stroke</span>
+            <span class="quick-chip" onclick="quickSearch('Parkinson\'s disease')">Parkinson's</span>
+            <span class="quick-chip" onclick="quickSearch('HIV/AIDS')">HIV/AIDS</span>
+            <span class="quick-chip" onclick="quickSearch('Migraine')">Migraine</span>
+        </div>
+    </div>
+
+    <div id="status"></div>
+    <div id="content"></div>
+
+    <div class="disclaimer">
+        <strong>Disclaimer:</strong> This tool is for general information only and is not a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider.
+    </div>
+    <p class="source">Content sourced from Wikipedia via the Wikimedia REST API.</p>
+</div>
+
+<script>
+let suggestTimer = null;
+let currentSuggestions = [];
+
+function setStatus(msg, isErr) {
+    const el = document.getElementById('status');
+    el.innerHTML = msg;
+    el.className = isErr ? 'error' : '';
+}
+
+function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function truncate(s, n) { return s && s.length > n ? s.slice(0,n).trimEnd()+'…' : (s||''); }
+
+// ─── Autocomplete suggestions ─────────────────────────────────────────────────
+async function onSearchInput() {
+    clearTimeout(suggestTimer);
+    const q = document.getElementById('searchBox').value.trim();
+    if (q.length < 2) { hideSuggestions(); return; }
+    suggestTimer = setTimeout(() => fetchSuggestions(q), 280);
+}
+
+async function fetchSuggestions(q) {
+    try {
+        const url = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(q)}&limit=8&format=json&origin=*`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        currentSuggestions = data[1] || [];
+        showSuggestions(currentSuggestions);
+    } catch { hideSuggestions(); }
+}
+
+function showSuggestions(titles) {
+    const box = document.getElementById('suggestions');
+    if (!titles.length) { hideSuggestions(); return; }
+    box.innerHTML = titles.map(t =>
+        `<div class="suggestion-item" onclick="selectSuggestion('${escHtml(t).replace(/'/g,"\\'")}')">
+            ${escHtml(t)}
+        </div>`
+    ).join('');
+    box.classList.remove('hidden');
+}
+
+function hideSuggestions() {
+    document.getElementById('suggestions').classList.add('hidden');
+}
+
+function selectSuggestion(title) {
+    document.getElementById('searchBox').value = title;
+    hideSuggestions();
+    loadCondition(title);
+}
+
+function onKeyDown(e) {
+    if (e.key === 'Enter') { hideSuggestions(); doSearch(); }
+    if (e.key === 'Escape') hideSuggestions();
+}
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('.search-input-wrap')) hideSuggestions();
+});
+
+// ─── Search ───────────────────────────────────────────────────────────────────
+function quickSearch(term) {
+    document.getElementById('searchBox').value = term;
+    loadCondition(term);
+}
+
+async function doSearch() {
+    const q = document.getElementById('searchBox').value.trim();
+    if (!q) return;
+    hideSuggestions();
+
+    // Try direct load first; if redirect or no good data, show search results
+    setStatus('<span class="spinner"></span> Searching…');
+    document.getElementById('content').innerHTML = '';
+
+    try {
+        // Search endpoint to get candidate pages
+        const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&srnamespace=0&srlimit=8&format=json&origin=*`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        const hits = (data.query?.search || []);
+
+        if (hits.length === 0) {
+            setStatus('No results found for "' + escHtml(q) + '".', true);
+            return;
+        }
+
+        if (hits.length === 1 || hits[0].title.toLowerCase() === q.toLowerCase()) {
+            setStatus('');
+            await loadCondition(hits[0].title);
+        } else {
+            // Show list of results
+            await showSearchResults(hits, q);
+        }
+    } catch (e) {
+        setStatus('Search failed: ' + e.message, true);
+    }
+}
+
+async function showSearchResults(hits, q) {
+    setStatus('');
+    // Fetch summaries for results in parallel
+    const summaries = await Promise.all(hits.map(h =>
+        fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(h.title)}`, { headers: { Accept: 'application/json' } })
+            .then(r => r.ok ? r.json() : null).catch(() => null)
+    ));
+
+    const html = hits.map((h, i) => {
+        const s = summaries[i];
+        const thumb = s?.thumbnail?.source;
+        const desc = s?.description || '';
+        const extract = truncate(s?.extract || '', 120);
+        return `
+        <div class="result-row" onclick="loadCondition('${escHtml(h.title).replace(/'/g,"\\'")}')">
+            ${thumb
+                ? `<img class="result-thumb" src="${thumb}" alt="" loading="lazy">`
+                : `<div class="result-thumb-placeholder">🩺</div>`}
+            <div class="result-info">
+                <div class="result-title">${escHtml(h.title)}</div>
+                ${desc ? `<div class="result-desc">${escHtml(desc)}</div>` : ''}
+                ${extract ? `<div class="result-desc">${escHtml(extract)}</div>` : ''}
+            </div>
+            <div class="result-arrow">›</div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('content').innerHTML = `
+        <p style="margin-bottom:12px;font-size:0.9rem;color:#555">
+            Showing ${hits.length} results for "<strong>${escHtml(q)}</strong>" — click a result to view details.
+        </p>
+        <div class="results-list">${html}</div>`;
+}
+
+// ─── Condition detail ─────────────────────────────────────────────────────────
+async function loadCondition(title) {
+    setStatus('<span class="spinner"></span> Loading…');
+    document.getElementById('content').innerHTML = '';
+    document.getElementById('searchBox').value = title;
+
+    try {
+        // Fetch summary and full sections in parallel
+        const [summary, sections] = await Promise.all([
+            fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { headers: { Accept: 'application/json' } }).then(r => r.json()),
+            fetchSections(title),
+        ]);
+
+        setStatus('');
+        renderCondition(title, summary, sections);
+    } catch (e) {
+        setStatus('Failed to load: ' + e.message, true);
+    }
+}
+
+async function fetchSections(title) {
+    try {
+        const resp = await fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(title)}&prop=sections&format=json&origin=*`);
+        const data = await resp.json();
+        return (data.parse?.sections || []).map(s => s.line.replace(/<[^>]+>/g,''));
+    } catch { return []; }
+}
+
+function renderCondition(title, summary, sections) {
+    const wikiUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(title)}`;
+    const thumb = summary?.thumbnail?.source;
+    const desc  = summary?.description || '';
+    const extract = summary?.extract || '';
+
+    // Guess treatment sections from Wikipedia section names
+    const treatmentSections = sections.filter(s =>
+        /treatment|therapy|management|medication|drug|intervention|surgery|cure|remedy/i.test(s)
+    );
+    const causeSections = sections.filter(s =>
+        /cause|etiology|risk factor|pathophysiology|pathogen/i.test(s)
+    );
+    const symptomSections = sections.filter(s =>
+        /symptom|sign|presentation|diagnosis|clinical/i.test(s)
+    );
+    const relatedSections = sections.filter(s =>
+        /related|complication|co-morbid|association|prognosis/i.test(s)
+    );
+
+    // Build treatment bullet list from section names (we don't fetch full body, but names give good overview)
+    const treatmentHtml = treatmentSections.length
+        ? `<ul class="treatment-list">${treatmentSections.map(s => `<li>${escHtml(s)}</li>`).join('')}</ul>`
+        : `<p style="font-size:0.88rem;color:#888">See the <a href="${wikiUrl}#Treatment" target="_blank" rel="noopener" style="color:#b71c1c">Treatment section on Wikipedia</a> for detailed information.</p>`;
+
+    const symptomsHtml = symptomSections.length
+        ? symptomSections.map(s => `<span class="related-chip" onclick="loadCondition('${escHtml(title).replace(/'/g,"\\'")}')">📋 ${escHtml(s)}</span>`).join('')
+        : '';
+
+    const relatedChips = relatedSections.map(s =>
+        `<span class="related-chip">📎 ${escHtml(s)}</span>`
+    ).join('');
+
+    document.getElementById('content').innerHTML = `
+    <div class="result-layout">
+        <div>
+            <div class="info-card">
+                <div class="info-card-image">
+                    ${thumb
+                        ? `<img src="${thumb}" alt="${escHtml(title)}" onerror="this.parentElement.innerHTML='<div class=\'no-img\'>🩺</div>'">`
+                        : `<div class="no-img">🩺</div>`}
+                </div>
+                <div class="info-card-body">
+                    <div class="condition-name">${escHtml(title)}</div>
+                    ${desc ? `<div class="condition-also">${escHtml(desc)}</div>` : ''}
+                    ${sections.length ? `
+                    <div class="tag-row">
+                        ${causeSections.length    ? `<span class="tag tag-type">Has causes section</span>` : ''}
+                        ${symptomSections.length  ? `<span class="tag tag-sys">Has symptoms section</span>` : ''}
+                        ${treatmentSections.length? `<span class="tag tag-type">Has treatments section</span>` : ''}
+                    </div>` : ''}
+                    <a class="wiki-link" href="${wikiUrl}" target="_blank" rel="noopener">Full article on Wikipedia →</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="detail-card">
+            ${extract ? `
+            <div class="section">
+                <div class="section-title">Overview</div>
+                <p class="extract-text">${escHtml(extract)}</p>
+            </div>` : ''}
+
+            <div class="section">
+                <div class="section-title">Treatments & Management</div>
+                ${treatmentHtml}
+            </div>
+
+            ${causeSections.length ? `
+            <div class="section">
+                <div class="section-title">Causes & Risk Factors</div>
+                <div class="related-list">
+                    ${causeSections.map(s => `<span class="related-chip">⚠️ ${escHtml(s)}</span>`).join('')}
+                </div>
+            </div>` : ''}
+
+            ${symptomSections.length ? `
+            <div class="section">
+                <div class="section-title">Symptoms & Diagnosis</div>
+                <div class="related-list">${symptomsHtml}</div>
+            </div>` : ''}
+
+            ${relatedChips ? `
+            <div class="section">
+                <div class="section-title">Related Topics</div>
+                <div class="related-list">${relatedChips}</div>
+            </div>` : ''}
+
+            ${sections.length ? `
+            <div class="section">
+                <div class="section-title">All Article Sections</div>
+                <div class="related-list">
+                    ${sections.map(s => `<a href="${wikiUrl}#${encodeURIComponent(s.replace(/ /g,'_'))}" target="_blank" rel="noopener" class="related-chip" style="text-decoration:none">§ ${escHtml(s)}</a>`).join('')}
+                </div>
+            </div>` : ''}
+        </div>
+    </div>`;
+}
+</script>
+</body>
+</html>
