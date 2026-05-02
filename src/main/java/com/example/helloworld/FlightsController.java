@@ -1,6 +1,8 @@
 package com.example.helloworld;
 
 import java.util.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -8,6 +10,8 @@ import org.springframework.web.client.RestTemplate;
 
 @RestController
 public class FlightsController {
+
+    private static final Logger log = LoggerFactory.getLogger(FlightsController.class);
 
     private final RestTemplate rest;
 
@@ -47,6 +51,9 @@ public class FlightsController {
             String credentials = openskyUsername + ":" + openskyPassword;
             String encoded = Base64.getEncoder().encodeToString(credentials.getBytes());
             headers.set("Authorization", "Basic " + encoded);
+            log.debug("OpenSky request: authenticated as '{}'", openskyUsername);
+        } else {
+            log.debug("OpenSky request: anonymous (no OPENSKY_USERNAME set)");
         }
 
         try {
