@@ -63,6 +63,37 @@ public class FlightsController {
     }
 
     /**
+     * Proxy for the adsbdb.com callsign route API — returns airline, origin and destination airport.
+     */
+    @GetMapping("/api/route")
+    public ResponseEntity<String> getRoute(@RequestParam String callsign) {
+        // Only allow alphanumeric + hyphens to prevent path traversal
+        if (!callsign.matches("[A-Za-z0-9\\-]{1,12}")) {
+            return ResponseEntity.badRequest().body("{\"error\":\"invalid callsign\"}");
+        }
+        String url = "https://api.adsbdb.com/v0/callsign/" + callsign.toUpperCase();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        headers.set("Accept", "application/json");
+
+        try {
+            ResponseEntity<String> resp = rest.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            log.debug("adsbdb route lookup: callsign={}", callsign);
+            return ResponseEntity.ok()
+                    .header("Content-Type", "application/json")
+                    .body(resp.getBody());
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "unknown error";
+            log.error("adsbdb route lookup failed: {} {}", e.getClass().getSimpleName(), msg, e);
+            String body = String.format(
+                    "{\"error\":\"%s\",\"type\":\"%s\",\"url\":\"%s\"}",
+                    msg, e.getClass().getSimpleName(), url);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
+        }
+    }
+
+    /**
      * Proxy for the OpenSky Network API — avoids browser CORS restrictions.
      * Authenticated access uses OPENSKY_USERNAME / OPENSKY_PASSWORD env vars.
      */

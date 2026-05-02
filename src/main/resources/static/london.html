@@ -97,6 +97,19 @@
         .popup-call { font-size: 1rem; font-weight: 800; color: #00d4ff; }
         .popup-row { display: flex; justify-content: space-between; gap: 16px; color: rgba(150,190,255,0.7); }
         .popup-row span { color: #e0f0ff; font-weight: 600; }
+
+        /* Route section inside detail panel */
+        .route-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(0,180,255,0.12); }
+        .route-loading { font-size: 0.78rem; color: rgba(150,190,255,0.4); font-style: italic; }
+        .route-unknown { font-size: 0.78rem; color: rgba(150,190,255,0.3); }
+        .route-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .route-airport { text-align: center; min-width: 60px; }
+        .ra-code { font-size: 1.15rem; font-weight: 800; color: #e0f0ff; letter-spacing: 0.06em; }
+        .ra-city { font-size: 0.72rem; color: rgba(150,190,255,0.65); margin-top: 1px; }
+        .ra-country { font-size: 0.65rem; color: rgba(150,190,255,0.35); }
+        .route-arrow { color: #00d4ff; font-size: 1rem; flex: 1; text-align: center; white-space: nowrap; }
+        .route-airline { font-size: 0.78rem; color: rgba(150,190,255,0.6); margin-top: 6px; }
+        .route-airline strong { color: #00d4ff; }
     </style>
 </head>
 <body>
@@ -174,6 +187,7 @@ let refreshTimer   = null;
 let countdownTimer = null;
 let secondsLeft    = REFRESH_INTERVAL;
 let map;
+const routeCache   = {};  // callsign → route object | null
 
 // ─── ADS-B.fi data helpers ────────────────────────────────────────────────────
 // alt_baro is feet (number) or the string "ground" for surface aircraft
@@ -416,6 +430,14 @@ function selectFlight(hex) {
     }
 
     showDetail(ac);
+
+    const callsign = (ac.flight || '').trim();
+    if (callsign) {
+        fetchRoute(callsign);
+    } else {
+        const el = document.getElementById('routeSection');
+        if (el) el.innerHTML = '<div class="route-unknown">No callsign — route unavailable</div>';
+    }
 }
 
 function showDetail(ac) {
@@ -424,7 +446,7 @@ function showDetail(ac) {
 
     panel.innerHTML = `
     <div class="detail-inner">
-        <div>
+        <div style="flex:1;min-width:0">
             <div class="detail-callsign">${escHtml(call)}</div>
             <div class="detail-meta">${ac.t ? escHtml(ac.t) + ' · ' : ''}${ac.r ? 'Reg: ' + escHtml(ac.r) + ' · ' : ''}ICAO: ${escHtml((ac.hex||'').toUpperCase())}${ac.squawk ? ' · Squawk: ' + escHtml(ac.squawk) : ''}</div>
             <div class="detail-stats">
@@ -437,6 +459,7 @@ function showDetail(ac) {
                 <div class="ds"><div class="dv">${ac.lat != null ? ac.lat.toFixed(3)+'°' : '—'}</div><div class="dl">Latitude</div></div>
                 <div class="ds"><div class="dv">${ac.lon != null ? ac.lon.toFixed(3)+'°' : '—'}</div><div class="dl">Longitude</div></div>
             </div>
+            <div class="route-section" id="routeSection"><div class="route-loading">Loading route…</div></div>
         </div>
         <button class="detail-close" onclick="closeDetail()">✕ Close</button>
     </div>`;
@@ -448,6 +471,51 @@ function closeDetail() {
     document.getElementById('detailPanel').classList.remove('visible');
     document.querySelectorAll('.flight-item').forEach(el => el.classList.remove('selected'));
     map.closePopup();
+}
+
+// ─── Route lookup ────────────────────────────────────────────────────────────
+async function fetchRoute(callsign) {
+    if (routeCache[callsign] !== undefined) {
+        updateRouteSection(routeCache[callsign]);
+        return;
+    }
+    try {
+        const resp = await fetch(`/api/route?callsign=${encodeURIComponent(callsign)}`);
+        const data = await resp.json();
+        const route = data?.response?.flightroute || null;
+        routeCache[callsign] = route;
+        updateRouteSection(route);
+    } catch {
+        routeCache[callsign] = null;
+        updateRouteSection(null);
+    }
+}
+
+function updateRouteSection(route) {
+    const el = document.getElementById('routeSection');
+    if (!el) return;
+    if (!route) {
+        el.innerHTML = '<div class="route-unknown">Route not in database</div>';
+        return;
+    }
+    const o = route.origin;
+    const d = route.destination;
+    const a = route.airline;
+    el.innerHTML = `
+    <div class="route-row">
+        <div class="route-airport">
+            <div class="ra-code">${escHtml(o.iata_code || o.icao_code)}</div>
+            <div class="ra-city">${escHtml(o.municipality)}</div>
+            <div class="ra-country">${escHtml(o.country_iso_name)}</div>
+        </div>
+        <div class="route-arrow">──✈──</div>
+        <div class="route-airport">
+            <div class="ra-code">${escHtml(d.iata_code || d.icao_code)}</div>
+            <div class="ra-city">${escHtml(d.municipality)}</div>
+            <div class="ra-country">${escHtml(d.country_iso_name)}</div>
+        </div>
+    </div>
+    <div class="route-airline"><strong>${escHtml(a.name)}</strong>${a.iata ? ' · ' + escHtml(a.iata) : ''}</div>`;
 }
 
 // ─── Refresh countdown ────────────────────────────────────────────────────────
