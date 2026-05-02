@@ -63,8 +63,11 @@ public class FlightsController {
                     .body(resp.getBody());
         } catch (Exception e) {
             String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "unknown error";
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body("{\"error\":\"" + msg + "\"}");
+            log.error("OpenSky request failed: {} {}", e.getClass().getSimpleName(), msg, e);
+            String body = String.format(
+                    "{\"error\":\"%s\",\"type\":\"%s\",\"url\":\"%s\"}",
+                    msg, e.getClass().getSimpleName(), url);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
         }
     }
 }
