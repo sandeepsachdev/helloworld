@@ -84,6 +84,7 @@
         .card-horoscopes { background: linear-gradient(135deg, #1a0533, #3d1472); }
         .card-space      { background: linear-gradient(135deg, #060b18, #0f1f5c); border: 1px solid rgba(100,150,255,0.2); }
         .card-flights    { background: linear-gradient(135deg, #021428, #0a2a50); border: 1px solid rgba(0,180,255,0.2); }
+        .card-london     { background: linear-gradient(135deg, #0d0228, #1e0850); border: 1px solid rgba(140,80,255,0.2); }
         .card-specials   { background: linear-gradient(135deg, #0d2b0d, #1a5c1a); }
 
         .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
@@ -268,6 +269,29 @@
         </div>
         <div class="card-footer">
             <span>OpenSky Network · CartoDB · Leaflet</span>
+            <span class="arrow">→</span>
+        </div>
+    </a>
+
+    <a href="london.html" class="app-card card-london">
+        <div class="card-header">
+            <div class="card-icon">🛫</div>
+            <div>
+                <div class="card-title">London Flight Tracker</div>
+                <div class="card-subtitle">Live aircraft over London airspace</div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="card-desc">Real-time aircraft positions over Greater London on an interactive dark map. Tracks Heathrow, Gatwick, City, Stansted and Luton. Shows aircraft type and registration. Auto-refreshes every 30 seconds.</div>
+            <div class="tag-row">
+                <span class="feature-tag">5 airports</span>
+                <span class="feature-tag">Type &amp; registration</span>
+                <span class="feature-tag">150 NM radius</span>
+                <span class="feature-tag">Auto-refresh</span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <span>adsb.lol · CartoDB · Leaflet</span>
             <span class="arrow">→</span>
         </div>
     </a>

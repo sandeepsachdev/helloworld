@@ -29,6 +29,40 @@ public class FlightsController {
     }
 
     /**
+     * Proxy for the adsb.lol API — no auth required, radius-based query.
+     * Returns altitude in feet and speed in knots (unlike OpenSky which uses metres/m/s).
+     */
+    @GetMapping("/api/flights-adsb")
+    public ResponseEntity<String> getAdsbFlights(
+            @RequestParam(defaultValue = "51.4775") String lat,
+            @RequestParam(defaultValue = "-0.4614") String lon,
+            @RequestParam(defaultValue = "150")     String radius) {
+
+        String url = String.format(
+                "https://api.adsb.lol/v2/lat/%s/lon/%s/dist/%s",
+                lat, lon, radius);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+        headers.set("Accept", "application/json");
+
+        try {
+            ResponseEntity<String> resp = rest.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
+            log.debug("adsb.lol request: lat={} lon={} radius={}nm", lat, lon, radius);
+            return ResponseEntity.ok()
+                    .header("Content-Type", "application/json")
+                    .body(resp.getBody());
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "unknown error";
+            log.error("adsb.lol request failed: {} {}", e.getClass().getSimpleName(), msg, e);
+            String body = String.format(
+                    "{\"error\":\"%s\",\"type\":\"%s\",\"url\":\"%s\"}",
+                    msg, e.getClass().getSimpleName(), url);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
+        }
+    }
+
+    /**
      * Proxy for the OpenSky Network API — avoids browser CORS restrictions.
      * Authenticated access uses OPENSKY_USERNAME / OPENSKY_PASSWORD env vars.
      */
