@@ -23,8 +23,8 @@ public class FlightsController {
 
     public FlightsController(org.springframework.boot.web.client.RestTemplateBuilder builder) {
         this.rest = builder
-                .setConnectTimeout(java.time.Duration.ofSeconds(10))
-                .setReadTimeout(java.time.Duration.ofSeconds(20))
+                .setConnectTimeout(java.time.Duration.ofSeconds(30))
+                .setReadTimeout(java.time.Duration.ofSeconds(60))
                 .build();
     }
 
