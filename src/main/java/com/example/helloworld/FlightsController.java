@@ -1,5 +1,7 @@
 package com.example.helloworld;
 
+import java.util.Base64;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -8,6 +10,12 @@ import org.springframework.web.client.RestTemplate;
 public class FlightsController {
 
     private final RestTemplate rest;
+
+    @Value("${opensky.username:}")
+    private String openskyUsername;
+
+    @Value("${opensky.password:}")
+    private String openskyPassword;
 
     public FlightsController(org.springframework.boot.web.client.RestTemplateBuilder builder) {
         this.rest = builder
@@ -18,7 +26,7 @@ public class FlightsController {
 
     /**
      * Proxy for the OpenSky Network API — avoids browser CORS restrictions.
-     * OpenSky anonymous access: ~400 API credits/day; each call costs 1 credit per 4 aircraft returned.
+     * Authenticated access uses OPENSKY_USERNAME / OPENSKY_PASSWORD env vars.
      */
     @GetMapping("/api/flights")
     public ResponseEntity<String> getFlights(
@@ -34,6 +42,12 @@ public class FlightsController {
         HttpHeaders headers = new HttpHeaders();
         headers.set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
         headers.set("Accept", "application/json");
+
+        if (openskyUsername != null && !openskyUsername.isBlank()) {
+            String credentials = openskyUsername + ":" + openskyPassword;
+            String encoded = Base64.getEncoder().encodeToString(credentials.getBytes());
+            headers.set("Authorization", "Basic " + encoded);
+        }
 
         try {
             ResponseEntity<String> resp = rest.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), String.class);
