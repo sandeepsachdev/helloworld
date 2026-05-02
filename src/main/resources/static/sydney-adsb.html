@@ -102,7 +102,7 @@
         .popup-row span { color: #e0f0ff; font-weight: 600; }
 
         /* Route section inside detail panel */
-        .route-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(0,180,255,0.12); }
+        .route-section { margin-top: 6px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(0,180,255,0.12); }
         .route-loading { font-size: 0.78rem; color: rgba(150,190,255,0.4); font-style: italic; }
         .route-unknown { font-size: 0.78rem; color: rgba(150,190,255,0.3); }
         .route-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -452,6 +452,7 @@ function showDetail(ac) {
         <div style="flex:1;min-width:0">
             <div class="detail-callsign">${escHtml(call)}</div>
             <div class="detail-meta">${ac.t ? escHtml(ac.t) + ' · ' : ''}${ac.r ? 'Reg: ' + escHtml(ac.r) + ' · ' : ''}ICAO: ${escHtml((ac.hex||'').toUpperCase())}${ac.squawk ? ' · Squawk: ' + escHtml(ac.squawk) : ''}</div>
+            <div class="route-section" id="routeSection"><div class="route-loading">Loading route…</div></div>
             <div class="detail-stats">
                 <div class="ds"><div class="dv">${fmtAlt(ac)}</div><div class="dl">Altitude</div></div>
                 <div class="ds"><div class="dv">${fmtSpd(ac)}</div><div class="dl">Ground Speed</div></div>
@@ -462,7 +463,6 @@ function showDetail(ac) {
                 <div class="ds"><div class="dv">${ac.lat != null ? ac.lat.toFixed(3)+'°' : '—'}</div><div class="dl">Latitude</div></div>
                 <div class="ds"><div class="dv">${ac.lon != null ? ac.lon.toFixed(3)+'°' : '—'}</div><div class="dl">Longitude</div></div>
             </div>
-            <div class="route-section" id="routeSection"><div class="route-loading">Loading route…</div></div>
         </div>
         <button class="detail-close" onclick="closeDetail()">✕ Close</button>
     </div>`;
